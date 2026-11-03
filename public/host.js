@@ -49,9 +49,9 @@ function render() {
   if (lobby) {
     const connected = state.players.filter(p => p.connected).length;
     $('player-count').textContent = `${connected} ready`;
-    $('start').disabled = connected < 2;
+    $('start').disabled = connected < 1;
     $('roster').replaceChildren();
-    if (!state.players.length) $('roster').textContent = 'Waiting for explorers… At least two players are needed.';
+    if (!state.players.length) $('roster').textContent = 'Waiting for explorers… One player is enough to practise!';
     for (const player of state.players) {
       const row = document.createElement('div');
       row.className = 'lobby-row';
@@ -112,5 +112,5 @@ setInterval(() => {
     else if (button.id !== 'start') button.disabled = false;
   }
   for (const input of document.querySelectorAll('#settings-form input')) input.disabled = !socket.connected;
-  if (state?.phase === 'lobby' && socket.connected) $('start').disabled = state.players.filter(p => p.connected).length < 2;
+  if (state?.phase === 'lobby' && socket.connected) $('start').disabled = state.players.filter(p => p.connected).length < 1;
 }, 100);

@@ -41,6 +41,16 @@ try {
   for (const [page, name, avatar] of [[alex, 'Alex', 'fox'], [sam, 'Sam', 'panda']]) {
     await page.goto(playerUrl);
     await page.locator('#join-screen').waitFor();
+    assert.equal(await page.locator('#avatars button').count(), 12);
+    await fits(page);
+    if (name === 'Alex') await screenshot(page, 'avatar-choices.png');
+    await page.getByRole('button', { name: 'octopus', exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: 'octopus', exact: true }).getAttribute('aria-pressed'), 'true');
+    await page.getByRole('button', { name: 'penguin', exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: 'octopus', exact: true }).getAttribute('aria-pressed'), 'false');
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Avatar picker must fit narrow screens');
+    await page.setViewportSize({ width: 1366, height: 657 });
     await page.getByRole('button', { name: avatar, exact: true }).click();
     await page.locator('#name').fill(name);
     await page.locator('#join-form button[type=submit]').click();
@@ -144,9 +154,31 @@ try {
   await host.locator('#host-lobby').waitFor();
   await host.getByRole('button', { name: 'Remove Sam' }).click();
   await sam.locator('#error').filter({ hasText: 'removed' }).waitFor();
+  await host.locator('#player-count').filter({ hasText: '1 ready' }).waitFor();
+  await host.locator('#start').click();
+  await alex.locator('#play-screen').waitFor();
+  await tap(alex, String(app.game.question.answer));
+  await alex.locator('[data-key="submit"]').click();
+  await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
+  assert.ok(Date.now() < app.game.deadline, 'Solo submission should reveal early');
+  await host.locator('#next').click();
+  await alex.locator('#final-screen').waitFor();
+  for (const page of [host, alex]) {
+    assert.equal(await page.locator('#winner-title').textContent(), 'Great practice, Alex!');
+    assert.equal(await page.locator('#winner-title').locator('..').locator('.eyebrow').textContent(), 'Practice complete');
+    assert.match(await page.locator('#winner-message').textContent(), /1 of 1 questions correctly/);
+    assert.doesNotMatch(await page.locator('#final-scores').textContent(), /👑/u);
+  }
+  assert.equal(await host.locator('#tiebreaker').isVisible(), false);
+  assert.equal(await host.locator('#tie-rules').isVisible(), false);
+  await screenshot(host, 'solo-results.png', true);
+  await host.locator('#play-again').click();
+  await alex.locator('#play-screen').waitFor();
+  assert.equal(app.game.participants.length, 1);
+  assert.equal(app.game.snapshot().players[0].score, 0);
   assert.deepEqual(errors, [], 'Browser JavaScript errors');
   assert.deepEqual(externalRequests, [], 'Game assets must be entirely local');
-  console.log(`Browser checks passed: host + two LAN players, keypad, keyboard, early/timeout reveal, timer colors, scoring, tie/tiebreaker, refresh, replay, removal, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
+  console.log(`Browser checks passed: host + two LAN players, solo practice/replay, keypad, keyboard, early/timeout reveal, timer colors, scoring, tie/tiebreaker, refresh, replay, removal, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
 } finally {
   await browser?.close();
   await app.close();

@@ -33,9 +33,16 @@ footer { text-align: center; color: #ffffffbb; font-size: 12px; padding: 18px 12
 .center-card label { display: block; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
 input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px solid var(--line); border-radius: 12px; color: var(--ink); background: #f8faff; }
 .center-card form .primary { width: 100%; margin: 18px 0 24px; }
-.avatars { display: flex; gap: 7px; margin: 18px 0; justify-content: center; }
+.avatars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; margin: 18px 0; }
 .avatars button { padding: 8px; font-size: 29px; border: 3px solid transparent; }
 .avatars button[aria-pressed="true"] { border-color: var(--indigo); background: #e0e7ff; }
+#join-screen { padding-top: 12px; padding-bottom: 12px; margin: 0 auto; }
+#join-screen .hero-icon { font-size: 44px; margin-bottom: 8px; }
+#join-screen h1 { margin-bottom: 8px; }
+#join-screen p { margin-bottom: 12px; }
+#join-screen .avatars { margin: 12px 0; }
+#join-screen .avatars button { padding: 4px; }
+#join-screen form .primary { margin: 12px 0 18px; }
 .hero-icon { font-size: 64px; line-height: 1.15; margin-bottom: 12px; }
 .center-card .eyebrow { display: block; }
 .soft-note { background: #eef2ff; border-radius: 16px; padding: 18px; margin-top: 25px; color: #4f46a1; line-height: 1.7; font-size: 15px; }

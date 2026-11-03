@@ -8,8 +8,9 @@ import { createApp } from '../server.js';
 import { Game } from '../lib/game.js';
 import { DEFAULT_SETTINGS } from '../lib/questions.js';
 import { joinUrls } from '../lib/network.js';
+import { avatars } from '../public/shared.js';
 
-async function fixture(t) {
+async function fixture(t, { solo = false } = {}) {
   const app = createApp();
   await new Promise(resolve => app.server.listen(0, '0.0.0.0', resolve));
   const url = `http://127.0.0.1:${app.server.address().port}`;
@@ -36,7 +37,7 @@ async function fixture(t) {
   const a = await connect();
   const b = await connect();
   const first = await send(a, 'join', { name: 'Alex', avatar: 'fox' });
-  const second = await send(b, 'join', { name: 'Sam', avatar: 'panda' });
+  const second = solo ? {} : await send(b, 'join', { name: 'Sam', avatar: 'panda' });
   return { ...app, url, host, a, b, connect, tokens: [first.token, second.token] };
 }
 
@@ -111,6 +112,38 @@ test('two players join, share a question, lock secretly, reveal early, score and
   assert.deepEqual(f.host.state.players.map(p => p.score), [0, 0]);
   await send(f.host, 'lobby');
   assert.equal(f.host.state.phase, 'lobby');
+});
+
+test('one player starts solo practice, reveals early, scores, finishes and replays', async t => {
+  const f = await fixture(t, { solo: true });
+  assert.equal((await send(f.host, 'start', settings)).ok, true);
+  await waitState(f.a, s => s?.phase === 'question');
+  assert.equal(f.a.state.participantCount, 1);
+  assert.equal((await answer(f.a, f.game.question.answer)).ok, true);
+  await waitState(f.a, s => s?.phase === 'reveal');
+  assert.equal(f.a.state.players[0].score, 1);
+  assert.ok(f.a.state.serverNow < f.a.state.deadline);
+  await send(f.host, 'next');
+  await waitState(f.a, s => s?.phase === 'finished');
+  assert.deepEqual(f.a.state.winners, [f.a.state.playerId]);
+  assert.match((await send(f.host, 'tiebreaker')).error, /tied winners/);
+  assert.equal((await send(f.host, 'start', settings)).ok, true);
+  await waitState(f.a, s => s?.phase === 'question');
+  assert.equal(f.a.state.players[0].score, 0);
+  await answer(f.a, f.game.question.answer + 1);
+  await send(f.host, 'next');
+  await waitState(f.a, s => s?.phase === 'finished');
+  assert.equal(f.a.state.players[0].score, 0);
+});
+
+test('all twelve avatar choices are accepted by the server; unknown avatars use the default', () => {
+  const game = new Game();
+  assert.equal(Object.keys(avatars).length, 12);
+  for (const avatar of Object.keys(avatars)) {
+    assert.equal(game.join({ name: avatar, avatar }).avatar, avatar);
+  }
+  const other = new Game();
+  assert.equal(other.join({ name: 'Explorer', avatar: 'unknown' }).avatar, 'fox');
 });
 
 test('deadline counts saved drafts without submission and never awards twice', async t => {
@@ -232,8 +265,8 @@ test('boundary deadline rejects late edits, exact speed ties stay tied, absent p
   const game = new Game({ now: () => now, schedule: () => 1, cancel: () => {} });
   const a = game.join({ name: 'A' });
   const b = game.join({ name: 'B' });
+  assert.throws(() => game.start(settings), /one connected/);
   game.connect(a, 'a');
-  assert.throws(() => game.start(settings), /two connected/);
   game.connect(b, 'b');
   game.start(settings);
   const correct = String(game.question.answer);

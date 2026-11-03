@@ -25,7 +25,7 @@ use the one matching your home Wi-Fi/Ethernet network. The QR address selector
 lets you change which address the code opens.
 
 The kids open that join address, such as `http://192.168.1.20:3000`, on their
-laptops, choose an avatar, and enter a name. Do **not** use `localhost` on their
+laptops, choose one of twelve animal avatars, and enter a name. Do **not** use `localhost` on their
 laptops: that would point to their own computer.
 
 ### Windows Firewall
@@ -41,7 +41,8 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 
 1. Pick operations, largest number (5-100), number of questions (1-50), and
    seconds per question (5-120). Defaults are all operations, numbers up to 12,
-   10 questions, and 30 seconds. At least two connected players are needed.
+   10 questions, and 30 seconds. One connected player is enough for solo practice;
+   join with more players for a multiplayer game.
 2. Everyone gets the **same question at the same time**. Use the large on-screen
    number pad, Clear, backspace, and Submit. Laptop number keys, Backspace,
    Delete, and Enter also work. Answers are limited to four digits.
@@ -52,7 +53,8 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 4. Correct answers earn **one point**. There is no speed bonus or penalty in
    normal play. The host sees who has submitted, but not their answers until reveal,
    then presses Next. The host can also end a game and return to the lobby.
-5. Highest score wins. Tied players are co-winners by default! An optional
+5. Solo practice ends with your score and number of correct answers, without a
+   winner or tiebreaker. In multiplayer, highest score wins. Tied players are co-winners by default! An optional
    **Tiebreaker** offers one extra question to tied winners only. Correct beats
    incorrect; fastest correct answer wins if more than one is right. Exact
    timestamp ties remain co-winners. If nobody is right, another tiebreaker can
@@ -115,10 +117,10 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The first command covers generator rules and game flow with two real Socket.IO
+The first command covers generator rules and solo/multiplayer game flow with real Socket.IO
 clients, including timeout drafts, scoring, tie-breaking, reconnection, and
 access control. The browser check uses an isolated server and three browser
-contexts (host plus two players), verifies the keypad and laptop viewport, and
+contexts (host plus two players, then solo practice), verifies the keypad and laptop viewport, and
 saves lobby, question, reveal, and scoreboard PNGs to `SCREENSHOT_DIR` (defaults
 to `artifacts`, ignored by Git). Playwright's browser install needs internet
 once; it is not needed to run the game.

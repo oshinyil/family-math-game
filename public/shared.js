@@ -1,4 +1,7 @@
-export const avatars = { fox: '🦊', panda: '🐼', cat: '🐱', frog: '🐸', owl: '🦉', unicorn: '🦄' };
+export const avatars = {
+  fox: '🦊', panda: '🐼', cat: '🐱', frog: '🐸', owl: '🦉', unicorn: '🦄',
+  dog: '🐶', lion: '🦁', tiger: '🐯', penguin: '🐧', koala: '🐨', octopus: '🐙',
+};
 export const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 export const $ = id => document.getElementById(id);
 export const equation = q => `${q.a} ${symbols[q.op]} ${q.b}`;
@@ -54,7 +57,7 @@ export function scoreboard(element, state, reveal = false) {
     const row = document.createElement('div');
     row.className = 'score-row';
     const name = document.createElement('strong');
-    name.textContent = `${avatars[player.avatar]} ${player.name}${state.winners.includes(player.id) ? ' 👑' : ''}`;
+    name.textContent = `${avatars[player.avatar]} ${player.name}${state.participantCount > 1 && state.winners.includes(player.id) ? ' 👑' : ''}`;
     const status = document.createElement('span');
     status.className = 'row-status';
     status.textContent = reveal ? (!player.played ? 'Watching' : `${player.correct ? '✓' : '✗'} ${player.answer === '' ? 'No answer' : player.answer}${player.correct ? ' · +1 point' : ''}`) :
@@ -68,9 +71,14 @@ export function scoreboard(element, state, reveal = false) {
 }
 
 export function finalScreen(state) {
+  const solo = state.participantCount === 1;
+  $('winner-title').closest('section').querySelector('.eyebrow').textContent = solo ? 'Practice complete' : 'Family math champions';
   const names = state.players.filter(p => state.winners.includes(p.id)).map(p => p.name);
-  $('winner-title').textContent = names.length > 1 ? `${names.join(' & ')} win together!` : `${names[0]} wins!`;
-  $('winner-message').textContent = names.length > 1 ? 'A brilliant team of co-champions. Well played, everyone!' :
+  const player = state.players.find(p => state.winners.includes(p.id));
+  $('winner-title').textContent = solo ? `Great practice, ${player.name}!` :
+    names.length > 1 ? `${names.join(' & ')} win together!` : `${names[0]} wins!`;
+  $('winner-message').textContent = solo ? `You answered ${player.score} of ${state.settings.questionCount} questions correctly. Every question makes your brain stronger!` :
+    names.length > 1 ? 'A brilliant team of co-champions. Well played, everyone!' :
     state.isTiebreaker ? 'Tiebreaker winner — correct answers first, then speed. Well played, everyone!' :
       'Great thinking, everyone. Every question makes your brain stronger!';
   scoreboard($('final-scores'), state);
