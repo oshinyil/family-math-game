@@ -53,6 +53,14 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
    Defaults are calculations, all operations, numbers up to 12, and 10 questions.
    One connected player is enough for solo practice;
    join with more players for a multiplayer game.
+   Optionally turn on **Auto-continue** before starting. After every reveal,
+   a shared **5-second countdown** advances everyone to the next question, or
+   the results after the last question. The host can press **Next now** /
+   **See results now** to skip the wait. The server owns the countdown, so
+   refreshing or reconnecting does not restart it. Tiebreakers remain manual.
+   Auto-continue is off by default: leave it off when children need more than
+   five seconds to read a story solution or pattern rule. Returning to the
+   lobby cancels any pending countdown.
 2. Everyone gets the **same question at the same time**. Use the large on-screen
    number pad, Clear, backspace, and Submit. Laptop number keys, Backspace,
    Delete, and Enter also work. Answers are limited to four digits.
@@ -62,7 +70,8 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
    only edits already saved on the server can count.
 4. Correct answers earn **one point**. There is no speed bonus or penalty in
    normal play. The host sees who has submitted, but not their answers until reveal,
-   then presses Next. The host can also end a game and return to the lobby.
+   then presses Next in manual mode (or waits for auto-continue). The host can
+   also end a game and return to the lobby.
 5. Solo practice ends with your score and number of correct answers, without a
    winner or tiebreaker. In multiplayer, highest score wins. Tied players are co-winners by default! An optional
    **Tiebreaker** offers one extra question to tied winners only. Correct beats

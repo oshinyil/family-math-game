@@ -117,6 +117,7 @@ export function createApp() {
   });
   return { app, server, io, game, close: async () => {
     clearTimeout(game.timer);
+    clearTimeout(game.advanceTimer);
     await new Promise(resolve => io.close(resolve));
   } };
 }

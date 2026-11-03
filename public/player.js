@@ -1,4 +1,4 @@
-import { $, avatars, renderQuestion, showError, emit, connection, playerChip, finalScreen, updateTimer } from './shared.js';
+import { $, avatars, renderQuestion, countdownText, showError, emit, connection, playerChip, finalScreen, updateTimer } from './shared.js';
 
 const socket = io({ autoConnect: false });
 let state;
@@ -148,7 +148,7 @@ function render() {
     if (state.phase === 'reveal') {
       $('feedback').textContent = !me.played ? 'Thanks for cheering!' : me.correct ? '✓ Brilliant! +1 point' : '✗ Good try! Keep going.';
       $('feedback').className = `feedback ${me.correct ? 'correct' : 'incorrect'}`;
-      $('answer-hint').textContent = me.played ? 'Waiting for the host to continue…' : 'You’re watching this round.';
+      $('answer-hint').textContent = countdownText(state, offset) ?? (me.played ? 'Waiting for the host to continue…' : 'You’re watching this round.');
     } else $('feedback').textContent = '';
     renderAnswer();
     updateTimer(state, offset);
@@ -206,6 +206,7 @@ document.addEventListener('keydown', event => {
 setInterval(() => {
   if (state && ['question', 'reveal'].includes(state.phase)) {
     updateTimer(state, offset);
+    if (countdownText(state, offset)) $('answer-hint').textContent = countdownText(state, offset);
     if (Date.now() + offset >= state.deadline) {
       for (const button of $('keypad').querySelectorAll('button')) button.disabled = true;
     }

@@ -6,6 +6,13 @@ export const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 export const $ = id => document.getElementById(id);
 export const equation = q => `${q.a} ${symbols[q.op]} ${q.b}`;
 
+export function countdownText(state, offset) {
+  if (state.phase !== 'reveal' || !state.advanceAt) return null;
+  const seconds = Math.max(0, Math.ceil((state.advanceAt - Date.now() - offset) / 1000));
+  const destination = state.round >= state.settings.questionCount ? 'Results' : 'Next question';
+  return `${destination} in ${seconds}…`;
+}
+
 export function renderQuestion(state, questionElement, labelElement, reasoningElement) {
   const written = state.question.type !== 'calculation';
   const pattern = state.question.type === 'pattern';

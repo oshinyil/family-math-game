@@ -103,6 +103,9 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .story-settings { grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
 .story-settings select { width: 100%; padding: 10px 5px; background: #f8faff; color: var(--ink); border: 2px solid var(--line); border-radius: 12px; margin-top: 8px; }
 .settings-card .muted { margin: 14px 0 18px; }.settings-card .primary { width: 100%; }
+.auto-option { display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 700; }
+.auto-option input { accent-color: var(--indigo); }
+.settings-card .auto-note { margin: 8px 0 16px; font-size: 12px; }
 .join-card .eyebrow { font-size: 10px; }.join-card h2 { margin-bottom: 13px; }
 .join-details { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e0e7ff; padding-bottom: 16px; }.join-details img { width: 120px; height: 120px; }.join-details p { font-size: 13px; margin-bottom: 7px; }
 .join-urls a { display: block; font-size: 17px; font-weight: 750; margin-bottom: 8px; overflow-wrap: anywhere; }

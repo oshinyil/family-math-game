@@ -169,6 +169,89 @@ test('lobby profile updates preserve identity, validate atomically, and broadcas
   assert.equal((await send(reconnected, 'profile', { name: 'Alex', avatar: 'fox' })).ok, true);
 });
 
+test('auto-continue owns a five-second reveal deadline, reconnects, and advances to results', async t => {
+  const f = await fixture(t);
+  await send(f.host, 'start', { ...settings, autoContinue: true, questionCount: 2 });
+  await ready(f);
+  await answer(f.a, f.game.question.answer);
+  await answer(f.b, f.game.question.answer);
+  await waitState(f.b, s => s?.phase === 'reveal');
+  assert.ok(f.b.state.advanceAt - f.b.state.serverNow > 4900 && f.b.state.advanceAt - f.b.state.serverNow <= 5000);
+  const advanceAt = f.b.state.advanceAt;
+  f.a.disconnect();
+  const replacement = await f.connect();
+  await send(replacement, 'join', { token: f.tokens[0] });
+  assert.equal(replacement.state.advanceAt, advanceAt);
+  await waitState(replacement, s => s?.phase === 'question' && s.round === 2, 6500);
+  await waitState(f.b, s => s?.phase === 'question' && s.round === 2);
+  assert.ok(Date.now() >= advanceAt);
+  // Neither player answers: question timeout must also start auto-continue.
+  await waitState(f.b, s => s?.phase === 'reveal' && s.round === 2, 6500);
+  assert.ok(f.b.state.advanceAt - f.b.state.serverNow > 4900 && f.b.state.advanceAt - f.b.state.serverNow <= 5000);
+  await waitState(f.b, s => s?.phase === 'finished', 6500);
+  assert.equal(f.b.state.advanceAt, null);
+});
+
+test('auto-continue cancels on skip/lobby/replay; stale callbacks cannot advance; tiebreakers stay manual', () => {
+  let now = 0;
+  let sequence = 0;
+  const timers = new Map(), cancelled = new Set();
+  const game = new Game({
+    now: () => now,
+    schedule: (callback, ms) => { const id = ++sequence; timers.set(id, { callback, ms }); return id; },
+    cancel: id => cancelled.add(id),
+  });
+  const a = game.join({ name: 'A' }), b = game.join({ name: 'B' });
+  game.connect(a, 'a');
+  game.connect(b, 'b');
+  const start = () => game.start({ ...settings, autoContinue: true, questionCount: 2 });
+  const reveal = () => {
+    for (const p of [a, b]) game.answer(p, { questionId: game.question.id, value: String(game.question.answer), submit: true });
+    assert.equal(game.phase, 'reveal');
+    assert.equal(game.advanceAt, now + 5000);
+    assert.equal(timers.get(game.advanceTimer).ms, 5000);
+    return game.advanceTimer;
+  };
+  start();
+  const skipped = reveal();
+  game.next();
+  assert.ok(cancelled.has(skipped));
+  assert.equal(game.round, 2);
+  timers.get(skipped).callback();
+  assert.equal(game.phase, 'question');
+  const last = reveal();
+  now += 5000;
+  timers.get(last).callback();
+  assert.equal(game.phase, 'finished');
+  assert.equal(game.advanceAt, null);
+  game.tiebreaker();
+  for (const p of [a, b]) game.answer(p, { questionId: game.question.id, value: String(game.question.answer), submit: true });
+  assert.equal(game.advanceAt, null);
+  assert.equal(game.advanceTimer, null);
+  game.next();
+  start();
+  const oldReplay = reveal();
+  game.next();
+  const oldLast = reveal();
+  game.next();
+  start();
+  const round = game.round;
+  timers.get(oldReplay).callback();
+  timers.get(oldLast).callback();
+  assert.equal(game.phase, 'question');
+  assert.equal(game.round, round);
+  const pending = reveal();
+  game.lobby();
+  game.remove(b.id);
+  assert.ok(cancelled.has(pending));
+  assert.equal(game.advanceAt, null);
+  timers.get(pending).callback();
+  assert.equal(game.phase, 'lobby');
+  game.start({ ...settings, autoContinue: false });
+  game.reveal();
+  assert.equal(game.advanceAt, null);
+});
+
 test('story players share text and duration, with reasoning withheld until reveal', async t => {
   const f = await fixture(t);
   assert.equal((await send(f.host, 'start', { ...settings, questionType: 'stories', storySteps: 'mixed', storySeconds: 75 })).ok, true);

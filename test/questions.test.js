@@ -41,7 +41,7 @@ test('generator respects operation selection and refuses impossible settings', (
     { operations: [] }, { operations: ['bad'] }, { questionCount: NaN },
     { storySeconds: 14 }, { storySeconds: 181 }, { storySeconds: '60' },
     { questionType: 'unknown' }, { storySteps: 'unknown' },
-    { patternSeconds: 4 }, { patternSeconds: 181 }, { patternSeconds: '30' }]) {
+    { patternSeconds: 4 }, { patternSeconds: 181 }, { patternSeconds: '30' }, { autoContinue: 'true' }]) {
     assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, ...change }));
   }
   assert.deepEqual(validateSettings({ ...DEFAULT_SETTINGS, operations: ['+', '+'] }).operations, ['+']);

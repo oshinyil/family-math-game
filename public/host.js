@@ -1,4 +1,4 @@
-import { $, avatars, renderQuestion, showError, emit, connection, scoreboard, finalScreen, updateTimer } from './shared.js';
+import { $, avatars, renderQuestion, countdownText, showError, emit, connection, scoreboard, finalScreen, updateTimer } from './shared.js';
 
 const socket = io({ autoConnect: false });
 let state;
@@ -74,7 +74,7 @@ function render() {
   } else {
     const reveal = state.phase === 'reveal';
     $('host-round').textContent = state.isTiebreaker ? '⚡ Tiebreaker' : `Question ${state.round} of ${state.settings.questionCount}`;
-    $('host-status').textContent = reveal ? 'Answer time!' : `${state.players.filter(p => p.submitted).length} locked in`;
+    $('host-status').textContent = countdownText(state, offset) ?? (reveal ? 'Answer time!' : `${state.players.filter(p => p.submitted).length} locked in`);
     renderQuestion(state, $('host-equation'), $('host-type'), $('host-reasoning'));
     $('host-prompt').textContent = reveal ? 'A little wiser, all together.' : 'Give everyone a little thinking space.';
     $('correct-answer').hidden = !reveal || state.question.type !== 'calculation';
@@ -82,6 +82,7 @@ function render() {
     $('next').hidden = !reveal;
     $('next').textContent = state.isTiebreaker || state.round >= state.settings.questionCount ?
       (state.participantCount === 1 ? 'See your results →' : 'See the winners →') : 'Next question →';
+    if (state.advanceAt) $('next').textContent = state.round >= state.settings.questionCount ? 'See results now →' : 'Next now →';
     $('board-heading').textContent = reveal ? 'Look at that thinking!' : 'The thinking team';
     scoreboard($('game-roster'), state, reveal);
     updateTimer(state, offset);
@@ -100,6 +101,7 @@ $('settings-form').addEventListener('submit', event => {
     patternSeconds: Number($('pattern-seconds').value),
     questionType: $('question-type').value,
     storySteps: $('story-steps').value,
+    autoContinue: $('auto-continue').checked,
   });
 });
 for (const [id, event] of [['next', 'next'], ['tiebreaker', 'tiebreaker'], ['new-game', 'lobby']]) {
@@ -111,6 +113,7 @@ $('end-game').onclick = () => {
 };
 setInterval(() => {
   if (state && ['question', 'reveal'].includes(state.phase)) updateTimer(state, offset);
+  if (state && countdownText(state, offset)) $('host-status').textContent = countdownText(state, offset);
   for (const button of document.querySelectorAll('button')) {
     if (!socket.connected) button.disabled = true;
     else if (button.id !== 'start') button.disabled = false;
