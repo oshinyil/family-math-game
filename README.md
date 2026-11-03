@@ -28,6 +28,12 @@ The kids open that join address, such as `http://192.168.1.20:3000`, on their
 laptops, choose one of twelve animal avatars, and enter a name. Do **not** use `localhost` on their
 laptops: that would point to their own computer.
 
+Before the game starts, players can use **Change name / avatar** on their waiting
+screen. The form opens with their current details; **Save changes** updates the
+host roster and everyone else's lobby immediately without creating a new player.
+**Cancel** keeps their previous details. Names must be 1-20 characters and unique
+(ignoring case). Changes are only allowed in the lobby, not during a game.
+
 ### Windows Firewall
 
 When Windows asks whether Node.js may communicate on networks, allow it on

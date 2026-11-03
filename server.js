@@ -83,6 +83,11 @@ export function createApp() {
       game.connect(player, socket.id);
       return { token: player.token };
     });
+    action('profile', payload => {
+      const player = identities.get(socket.id)?.player;
+      if (!player) throw new Error('Join the game first.');
+      game.updateProfile(player, payload ?? {});
+    });
     action('answer', payload => {
       const player = identities.get(socket.id)?.player;
       if (!player) throw new Error('Join the game first.');

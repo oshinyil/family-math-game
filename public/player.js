@@ -10,6 +10,7 @@ let restoring = true;
 let avatar = 'fox';
 let token;
 let storageAvailable = true;
+let editing = false;
 try {
   token = localStorage.getItem('math-token');
   $('name').value = localStorage.getItem('math-name') ?? '';
@@ -31,16 +32,18 @@ for (const [key, emoji] of Object.entries(avatars)) {
   $('avatars').append(button);
 }
 function remember() {
+  const me = state?.players.find(p => p.id === state.playerId);
   try {
     localStorage.setItem('math-token', token);
-    localStorage.setItem('math-name', $('name').value.trim());
-    localStorage.setItem('math-avatar', avatar);
+    localStorage.setItem('math-name', me?.name ?? $('name').value.trim());
+    localStorage.setItem('math-avatar', me?.avatar ?? avatar);
   } catch {
     storageAvailable = false;
   }
   if (!storageAvailable) showError('Browser storage is disabled. Stay on this page so your player identity is not lost.');
 }
 connection(socket, async () => {
+  editing = false;
   restoring = true;
   pending = false;
   if (token) {
@@ -61,6 +64,7 @@ socket.on('state', next => {
   if (changedQuestion || restoring || next.ownResponse?.submitted) value = next.ownResponse?.value ?? '';
   restoring = false;
   state = next;
+  if (state.phase !== 'lobby') editing = false;
   offset = state.serverNow - Date.now();
   locked = Boolean(state.ownResponse?.submitted);
   if (changedQuestion) {
@@ -72,13 +76,49 @@ socket.on('state', next => {
 socket.on('disconnect', () => renderAnswer());
 socket.connect();
 
+function fillProfile() {
+  const me = state?.players.find(p => p.id === state.playerId);
+  if (!me) return;
+  $('name').value = me.name;
+  avatar = me.avatar;
+  for (const button of $('avatars').children) {
+    button.setAttribute('aria-pressed', String(button.getAttribute('aria-label') === avatar));
+  }
+}
+$('edit-profile').onclick = () => {
+  if (state?.phase !== 'lobby' || !socket.connected) return;
+  editing = true;
+  fillProfile();
+  showError('');
+  render();
+  $('name').focus();
+};
+$('profile-cancel').onclick = () => {
+  editing = false;
+  fillProfile();
+  showError('');
+  render();
+};
 $('join-form').addEventListener('submit', async event => {
   event.preventDefault();
+  if (!socket.connected) {
+    showError('Wait for the connection to return before saving your details.');
+    return;
+  }
   const button = event.submitter;
   button.disabled = true;
   showError('');
-  const result = await emit(socket, 'join', { name: $('name').value, avatar });
+  const saving = editing;
+  const result = await emit(socket, saving ? 'profile' : 'join', { name: $('name').value, avatar });
   button.disabled = false;
+  if (saving) {
+    if (!result.ok) return;
+    editing = false;
+    fillProfile();
+    remember();
+    render();
+    return;
+  }
   if (!result.token) return;
   token = result.token;
   remember();
@@ -86,8 +126,12 @@ $('join-form').addEventListener('submit', async event => {
 
 function render() {
   if (!state) return;
-  $('join-screen').hidden = true;
-  $('waiting-screen').hidden = state.phase !== 'lobby';
+  $('join-screen').hidden = !editing;
+  $('waiting-screen').hidden = state.phase !== 'lobby' || editing;
+  $('profile-title').textContent = editing ? 'Make it yours!' : 'Ready, math explorer?';
+  $('profile-description').textContent = editing ? 'Change your name or choose a new buddy.' : 'Pick your buddy, add your name, and join the family.';
+  $('profile-submit').textContent = editing ? 'Save changes ✓' : 'Let’s play →';
+  $('profile-cancel').hidden = !editing;
   $('play-screen').hidden = !['question', 'reveal'].includes(state.phase);
   $('final-screen').hidden = state.phase !== 'finished';
   const me = state.players.find(p => p.id === state.playerId);

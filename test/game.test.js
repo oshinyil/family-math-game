@@ -136,6 +136,39 @@ test('one player starts solo practice, reveals early, scores, finishes and repla
   assert.equal(f.a.state.players[0].score, 0);
 });
 
+test('lobby profile updates preserve identity, validate atomically, and broadcast to all clients', async t => {
+  const f = await fixture(t);
+  const id = f.a.state.playerId;
+  const token = f.tokens[0];
+  assert.match((await send(f.host, 'profile', { name: 'Host', avatar: 'dog' })).error, /Join/);
+  for (const payload of [
+    { name: ' sam ', avatar: 'dog' }, { name: '', avatar: 'dog' },
+    { name: 'x'.repeat(21), avatar: 'dog' }, { name: 'bad\u0000name', avatar: 'dog' },
+    { name: 'New name', avatar: 'invalid' },
+  ]) {
+    assert.ok((await send(f.a, 'profile', payload)).error);
+    assert.equal(f.game.players.get(token).name, 'Alex');
+    assert.equal(f.game.players.get(token).avatar, 'fox');
+  }
+  assert.equal((await send(f.a, 'profile', { name: ' alex ', avatar: 'dog' })).ok, true);
+  assert.equal((await send(f.a, 'profile', { name: '  Alex   Explorer  ', avatar: 'octopus' })).ok, true);
+  for (const socket of [f.a, f.b, f.host]) {
+    await waitState(socket, s => s?.players.some(p => p.id === id && p.name === 'Alex Explorer' && p.avatar === 'octopus'));
+    assert.equal(socket.state.players.length, 2);
+  }
+  assert.equal(f.game.players.get(token).id, id);
+  f.a.disconnect();
+  const reconnected = await f.connect();
+  assert.equal((await send(reconnected, 'join', { token })).token, token);
+  assert.equal(reconnected.state.playerId, id);
+  assert.equal(reconnected.state.players.find(p => p.id === id).name, 'Alex Explorer');
+  await send(f.host, 'start', settings);
+  assert.match((await send(reconnected, 'profile', { name: 'Changed', avatar: 'cat' })).error, /before the game/);
+  assert.equal(f.game.players.get(token).name, 'Alex Explorer');
+  await send(f.host, 'lobby');
+  assert.equal((await send(reconnected, 'profile', { name: 'Alex', avatar: 'fox' })).ok, true);
+});
+
 test('story players share text and duration, with reasoning withheld until reveal', async t => {
   const f = await fixture(t);
   assert.equal((await send(f.host, 'start', { ...settings, questionType: 'stories', storySteps: 'mixed', storySeconds: 75 })).ok, true);

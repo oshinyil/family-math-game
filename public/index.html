@@ -12,12 +12,13 @@
   <main>
     <section id="join-screen" class="center-card card" hidden>
       <div class="hero-icon">🚀</div><span class="eyebrow">A little thinking. A lot of fun.</span>
-      <h1>Ready, math explorer?</h1><p>Pick your buddy, add your name, and join the family.</p>
+      <h1 id="profile-title">Ready, math explorer?</h1><p id="profile-description">Pick your buddy, add your name, and join the family.</p>
       <form id="join-form">
         <div id="avatars" class="avatars" role="group" aria-label="Choose an avatar"></div>
         <label for="name">Your name</label>
         <input id="name" name="name" maxlength="20" autocomplete="nickname" required placeholder="What should we call you?">
-        <button class="primary" type="submit">Let’s play →</button>
+        <button id="profile-submit" class="primary" type="submit">Let’s play →</button>
+        <button id="profile-cancel" type="button" class="text-button" hidden>Cancel</button>
       </form>
       <small>On the host PC? <a href="/host">Open host controls</a></small>
     </section>
@@ -25,6 +26,7 @@
       <div class="hero-icon">🎉</div><span class="eyebrow">You’re in!</span>
       <h1 id="welcome">Welcome to the club</h1><p>The host will start when everyone is ready.</p>
       <div id="lobby-players" class="player-chips"></div>
+      <button id="edit-profile" type="button">Change name / avatar</button>
       <div class="soft-note">Same questions. One point for each correct answer.<br>No rush to be first — just do your best.</div>
     </section>
     <section id="play-screen" hidden>

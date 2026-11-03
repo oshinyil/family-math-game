@@ -43,6 +43,11 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 #join-screen .avatars { margin: 12px 0; }
 #join-screen .avatars button { padding: 4px; }
 #join-screen form .primary { margin: 12px 0 18px; }
+#profile-cancel { display: block; margin: -18px auto 0; padding: 2px 6px; }
+#edit-profile { margin-top: 18px; }
+#waiting-screen { padding-top: 24px; padding-bottom: 24px; }
+#waiting-screen .hero-icon { font-size: 48px; }
+#waiting-screen h1 { font-size: 32px; }
 .hero-icon { font-size: 64px; line-height: 1.15; margin-bottom: 12px; }
 .center-card .eyebrow { display: block; }
 .soft-note { background: #eef2ff; border-radius: 16px; padding: 18px; margin-top: 25px; color: #4f46a1; line-height: 1.7; font-size: 15px; }
