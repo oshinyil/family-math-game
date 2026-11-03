@@ -5,6 +5,30 @@ Your Windows PC hosts the game; the kids join from their laptop browsers.
 No accounts, cloud service, AI, subscription, CDN, or internet connection during play.
 The source repository is public, but running the game does **not** publish it online.
 
+## A look inside
+
+**Set up the family challenge.** Choose question types, difficulty, separate timers,
+and optional auto-continue, then welcome players into the lobby.
+
+![Host setup with story questions, separate question timers, and two players ready in the lobby](docs/screenshots/host-setup.jpg)
+
+**Think, then tap.** Everyone gets the same question, with a large on-screen number
+pad. Play calculations, generated stories, or next/previous/missing-number patterns.
+
+![Player answering a generated story question using the large numeric keypad](docs/screenshots/player-question.jpg)
+
+**Learn from the reveal.** Correct answers earn a point; stories and patterns show
+the calculation or counting rule behind the answer.
+
+![Answer reveal showing the story solution, a correct answer, and one point awarded](docs/screenshots/answer-reveal.jpg)
+
+**Celebrate the finish.** See the final scores, play again, or celebrate co-winners
+when scores are tied. Solo games finish with practice results instead.
+
+![Final scoreboard celebrating Alex with fictional players Alex and Sam](docs/screenshots/final-scores.jpg)
+
+*Screenshots use fictional players and a documentation-only join address.*
+
 ## Run on your Windows PC
 
 Install **Node.js 22 or newer** (Node 26 works). In this folder, run:
