@@ -1,0 +1,22 @@
+{
+  "name": "family-math-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An offline-ready home Wi-Fi multiplayer math quiz.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "test:browser": "node scripts/browser-check.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1",
+    "socket.io-client": "^4.8.1"
+  }
+}

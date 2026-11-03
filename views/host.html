@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Host · Family Math Club</title>
+  <link rel="icon" href="data:,"><link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js" defer></script><script src="/host.js" type="module"></script>
+</head>
+<body>
+  <header><a class="brand" href="/host">✦ Family Math Club <span class="host-tag">HOST</span></a><span id="connection" class="pill">Connecting…</span></header>
+  <p id="error" class="notice error" role="alert" hidden></p>
+  <main class="host-main">
+    <section id="host-lobby">
+      <div class="page-heading"><span class="eyebrow">Bring the family together</span><h1>A little friendly competition.</h1><p>Set the challenge. Gather your explorers. Let the thinking begin.</p></div>
+      <div class="host-grid">
+        <div class="card settings-card">
+          <h2>Make it your game</h2>
+          <form id="settings-form">
+            <fieldset><legend>What are we practising?</legend><div class="operations">
+              <label><input type="checkbox" name="op" value="+" checked><span>+<small>Add</small></span></label>
+              <label><input type="checkbox" name="op" value="-" checked><span>−<small>Subtract</small></span></label>
+              <label><input type="checkbox" name="op" value="*" checked><span>×<small>Multiply</small></span></label>
+              <label><input type="checkbox" name="op" value="/" checked><span>÷<small>Divide</small></span></label>
+            </div></fieldset>
+            <div class="settings-fields">
+              <label>Largest number<input id="max-number" type="number" min="5" max="100" value="12" required></label>
+              <label>Questions<input id="question-count" type="number" min="1" max="50" value="10" required></label>
+              <label>Seconds each<input id="question-seconds" type="number" min="5" max="120" value="30" required></label>
+            </div>
+            <p class="muted">Same level for everyone. Whole-number answers, no negatives. Both operands stay within your limit; multiplication answers can be larger.</p>
+            <button id="start" type="submit" class="primary" disabled>Start the adventure →</button>
+          </form>
+        </div>
+        <div class="card join-card"><span class="eyebrow">1. Join on home Wi-Fi</span><h2>A seat for every explorer</h2>
+          <div class="join-details"><img id="qr" alt="QR code for the player join address" width="160" height="160" hidden><div><p>Open this address on the kids’ laptops:</p><div id="join-urls" class="join-urls">Finding your Wi-Fi address…</div><label id="address-label" class="muted" hidden>QR address<select id="join-address" aria-label="Choose the QR code join address"></select></label><small>No internet needed once installed.</small></div></div>
+          <div class="roster-heading"><strong>2. Who’s ready?</strong><span id="player-count" class="pill dark"></span></div><div id="roster" class="roster"></div>
+        </div>
+      </div>
+    </section>
+    <section id="host-game" hidden>
+      <div class="round-top"><span id="host-round"></span><span id="host-status" class="pill"></span></div>
+      <div class="host-grid">
+        <div class="card host-question">
+          <div class="timer"><div id="timer" class="timer-track" role="progressbar" aria-label="Time remaining" aria-valuemin="0"><div id="timer-fill"></div></div><div class="timer-text"><span id="timer-caption">Thinking time</span><strong id="seconds"></strong></div></div>
+          <p id="host-prompt">Give everyone a little thinking space.</p><div id="host-equation" class="equation"></div>
+          <div id="correct-answer" class="correct-answer" hidden></div>
+          <button id="next" class="primary" hidden>Next question →</button>
+        </div>
+        <div class="card"><h2 id="board-heading">The thinking team</h2><div id="game-roster" class="scoreboard"></div><p class="muted">One point for a correct answer. Everyone gets the same question.</p></div>
+      </div>
+    </section>
+    <section id="host-final" class="center-card card final" hidden>
+      <div class="hero-icon">🏆</div><span class="eyebrow">Family math champions</span><h1 id="winner-title"></h1><p id="winner-message"></p>
+      <div id="final-scores" class="scoreboard"></div>
+      <div class="final-actions"><button id="play-again" class="primary">Play again ↻</button><button id="tiebreaker" hidden>Tiebreaker ⚡</button><button id="new-game">New game / setup</button></div>
+      <p id="tie-rules" class="muted" hidden>Optional extra round for tied winners only: a correct answer wins; fastest correct answer breaks a tie. If nobody is correct, try again. Or celebrate your co-winners!</p>
+    </section>
+    <button id="end-game" class="text-button light" hidden>End game and return to lobby</button>
+  </main>
+  <footer>Hosted on this PC · Home Wi-Fi only · Keep the server window open</footer>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family Math Club</title>
+  <link rel="icon" href="data:,"><link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js" defer></script><script src="/player.js" type="module"></script>
+</head>
+<body>
+  <header><a class="brand" href="/">✦ Family Math Club</a><div class="header-right"><span id="identity"></span><span id="connection" class="pill">Connecting…</span></div></header>
+  <p id="error" class="notice error" role="alert" hidden></p>
+  <main>
+    <section id="join-screen" class="center-card card" hidden>
+      <div class="hero-icon">🚀</div><span class="eyebrow">A little thinking. A lot of fun.</span>
+      <h1>Ready, math explorer?</h1><p>Pick your buddy, add your name, and join the family.</p>
+      <form id="join-form">
+        <div id="avatars" class="avatars" role="group" aria-label="Choose an avatar"></div>
+        <label for="name">Your name</label>
+        <input id="name" name="name" maxlength="20" autocomplete="nickname" required placeholder="What should we call you?">
+        <button class="primary" type="submit">Let’s play →</button>
+      </form>
+      <small>On the host PC? <a href="/host">Open host controls</a></small>
+    </section>
+    <section id="waiting-screen" class="center-card card" hidden>
+      <div class="hero-icon">🎉</div><span class="eyebrow">You’re in!</span>
+      <h1 id="welcome">Welcome to the club</h1><p>The host will start when everyone is ready.</p>
+      <div id="lobby-players" class="player-chips"></div>
+      <div class="soft-note">Same questions. One point for each correct answer.<br>No rush to be first — just do your best.</div>
+    </section>
+    <section id="play-screen" hidden>
+      <div class="play-layout">
+        <div class="question-card card">
+          <div id="round-label" class="progress"></div>
+          <div class="timer">
+            <div id="timer" class="timer-track" role="progressbar" aria-label="Time remaining" aria-valuemin="0"><div id="timer-fill"></div></div>
+            <div class="timer-text"><span id="timer-caption">Thinking time</span><strong id="seconds"></strong></div>
+          </div>
+          <div id="equation" class="equation"></div>
+          <div id="answer-box" class="answer-box" role="status" aria-live="polite" aria-label="Your answer"><span id="answer-display">?</span></div>
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+          <p id="answer-hint" class="muted">Tap the numbers, then lock it in.</p>
+        </div>
+        <div id="keypad" class="keypad" role="group" aria-label="Number pad">
+          <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+          <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+          <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+          <button class="key clear" data-key="clear">Clear</button><button class="key" data-key="0">0</button><button class="key back" data-key="back" aria-label="Delete last digit">⌫</button>
+          <button class="key action" data-key="submit">Submit ✓</button>
+        </div>
+      </div>
+      <div id="mini-scores" class="player-chips"></div>
+    </section>
+    <section id="final-screen" class="center-card card final" hidden>
+      <div class="hero-icon">🏆</div><span class="eyebrow">What a game!</span>
+      <h1 id="winner-title"></h1><p id="winner-message"></p>
+      <div id="final-scores" class="scoreboard"></div>
+      <p class="muted">The host can start another adventure.</p>
+    </section>
+  </main>
+  <footer>Big brains. Kind hearts. Play together.</footer>
+</body>
+</html>
