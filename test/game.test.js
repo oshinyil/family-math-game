@@ -154,17 +154,42 @@ test('story players share text and duration, with reasoning withheld until revea
   assert.deepEqual(f.b.state.players.map(p => p.score), [1, 1]);
 });
 
-test('mixed rounds schedule their own timer, timeout saved stories and retain deadlines on reconnect', () => {
+test('pattern players share the question, preserve their timer on reconnect and reveal the rule only afterwards', async t => {
+  const f = await fixture(t);
+  assert.equal((await send(f.host, 'start', { ...settings, questionType: 'patterns', patternSeconds: 45 })).ok, true);
+  await ready(f);
+  assert.equal(f.a.state.question.type, 'pattern');
+  assert.deepEqual(f.a.state.question, f.b.state.question);
+  assert.equal(f.a.state.durationMs, 45000);
+  assert.equal(f.a.state.deadline - f.game.startedAt, 45000);
+  for (const socket of [f.a, f.b, f.host]) {
+    for (const privateKey of ['answer', 'sequence', 'missingIndex', 'explanation']) {
+      assert.equal(privateKey in socket.state.question, false);
+    }
+  }
+  const deadline = f.a.state.deadline;
+  f.a.disconnect();
+  const reconnected = await f.connect();
+  await send(reconnected, 'join', { token: f.tokens[0] });
+  assert.equal(reconnected.state.deadline, deadline);
+  await answer(reconnected, f.game.question.answer);
+  await answer(f.b, f.game.question.answer + 1);
+  await waitState(f.b, s => s?.phase === 'reveal');
+  assert.equal(f.b.state.question.explanation, f.game.question.explanation);
+  assert.deepEqual(f.b.state.players.map(p => p.score), [1, 0]);
+});
+
+test('mixed rounds schedule each type timer, timeout saved answers and retain deadlines on reconnect', () => {
   let now = 100;
   const scheduled = [];
   const game = new Game({ now: () => now, schedule: (callback, ms) => { scheduled.push({ callback, ms }); return 1; }, cancel: () => {} });
   const player = game.join({ name: 'Explorer' });
   game.connect(player, 'socket');
-  game.start({ ...settings, questionCount: 4, questionType: 'mix', storySeconds: 90, storySteps: 'mixed' });
+  game.start({ ...settings, questionCount: 6, questionType: 'mix', storySeconds: 90, patternSeconds: 45, storySteps: 'mixed' });
   const types = [];
-  for (let round = 0; round < 4; round++) {
+  for (let round = 0; round < 6; round++) {
     const story = game.question.type === 'story';
-    const duration = story ? 90000 : 5000;
+    const duration = story ? 90000 : game.question.type === 'pattern' ? 45000 : 5000;
     types.push(game.question.type);
     assert.equal(game.deadline - now, duration);
     assert.equal(game.snapshot(player).durationMs, duration);
@@ -181,7 +206,7 @@ test('mixed rounds schedule their own timer, timeout saved stories and retain de
     game.next();
   }
   assert.equal(game.phase, 'finished');
-  assert.deepEqual(types.slice(0, 2).sort(), ['calculation', 'story']);
+  assert.deepEqual(types.slice(0, 3).sort(), ['calculation', 'pattern', 'story']);
 });
 
 test('all twelve avatar choices are accepted by the server; unknown avatars use the default', () => {

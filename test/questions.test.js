@@ -40,7 +40,8 @@ test('generator respects operation selection and refuses impossible settings', (
   for (const change of [{ seconds: 0 }, { seconds: '30' }, { maxNumber: 101 }, { questionCount: 51 },
     { operations: [] }, { operations: ['bad'] }, { questionCount: NaN },
     { storySeconds: 14 }, { storySeconds: 181 }, { storySeconds: '60' },
-    { questionType: 'unknown' }, { storySteps: 'unknown' }]) {
+    { questionType: 'unknown' }, { storySteps: 'unknown' },
+    { patternSeconds: 4 }, { patternSeconds: 181 }, { patternSeconds: '30' }]) {
     assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, ...change }));
   }
   assert.deepEqual(validateSettings({ ...DEFAULT_SETTINGS, operations: ['+', '+'] }).operations, ['+']);
@@ -85,12 +86,39 @@ test('story questions obey each operation and chain safe whole-number steps with
   }
 });
 
-test('mix includes both types and mixed-story challenges include both step counts', () => {
+test('patterns cover next, previous and missing numbers with bounded consistent steps and no repeats', () => {
+  for (const maxNumber of [5, 12, 100]) {
+    const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber, questionCount: 1 });
+    const prompts = new Set();
+    assert.deepEqual(deck.slice(-3).map(q => q.kind).sort(), ['missing', 'next', 'previous']);
+    assert.deepEqual([...new Set(deck.map(q => Math.sign(q.step)))].sort(), [-1, 1]);
+    for (const q of deck) {
+      assert.equal(q.type, 'pattern');
+      assert.ok(!prompts.has(q.text));
+      prompts.add(q.text);
+      assert.equal(q.sequence.length, 5);
+      assert.ok(q.sequence.every(n => Number.isInteger(n) && n >= 0 && n <= maxNumber));
+      assert.ok(q.sequence.slice(1).every((n, i) => n - q.sequence[i] === q.step));
+      assert.equal(q.answer, q.sequence[q.missingIndex]);
+      assert.equal(q.kind, q.missingIndex === 0 ? 'previous' : q.missingIndex === 4 ? 'next' : 'missing');
+      const displayed = q.text.split('\n')[1].split(', ');
+      assert.equal(displayed[q.missingIndex], '?');
+      assert.equal(displayed.filter(n => n === '?').length, 1);
+      assert.ok(displayed.every((n, i) => i === q.missingIndex || Number(n) === q.sequence[i]));
+      assert.ok(q.explanation.includes(q.sequence.join(', ')));
+      assert.ok(q.explanation.includes(`by ${Math.abs(q.step)}`));
+    }
+  }
+  assert.throws(() => generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber: 5, questionCount: 50 }), /Only .* different questions/);
+  assert.ok(generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', operations: [] }).every(q => q.type === 'pattern'));
+});
+
+test('mix includes all three types and mixed-story challenges include both step counts', () => {
   for (let i = 0; i < 10; i++) {
     const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'mix', storySteps: 'mixed' });
-    const firstFour = deck.slice(-4);
-    assert.deepEqual([...new Set(firstFour.map(q => q.type))].sort(), ['calculation', 'story']);
-    assert.deepEqual(firstFour.filter(q => q.type === 'story').map(q => q.steps.length).sort(), [1, 2]);
+    const firstSix = deck.slice(-6);
+    assert.deepEqual([...new Set(firstSix.map(q => q.type))].sort(), ['calculation', 'pattern', 'story']);
+    assert.deepEqual(firstSix.filter(q => q.type === 'story').map(q => q.steps.length).sort(), [1, 2]);
   }
 });
 

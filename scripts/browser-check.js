@@ -234,21 +234,55 @@ try {
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
   await host.locator('#question-type').selectOption('mix');
+  await host.locator('#question-count').fill('3');
+  await host.locator('#pattern-seconds').fill('45');
   await host.locator('#start').click();
   const mixedTypes = [];
-  for (let round = 1; round <= 2; round++) {
+  for (let round = 1; round <= 3; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     mixedTypes.push(app.game.question.type);
-    assert.equal(app.game.durationMs, app.game.question.type === 'story' ? 75000 : 5000);
+    assert.equal(app.game.durationMs, app.game.question.type === 'story' ? 75000 :
+      app.game.question.type === 'pattern' ? 45000 : 5000);
     await tap(alex, String(app.game.question.answer));
     await alex.locator('[data-key="submit"]').click();
     await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
     await host.locator('#next').click();
   }
-  assert.deepEqual(mixedTypes.sort(), ['calculation', 'story']);
+  assert.deepEqual(mixedTypes.sort(), ['calculation', 'pattern', 'story']);
+  await host.locator('#host-final').waitFor();
+  await host.locator('#new-game').click();
+  await host.locator('#question-type').selectOption('patterns');
+  await screenshot(host, 'pattern-host-setup.png', true);
+  await host.locator('#start').click();
+  const patternKinds = [];
+  for (let round = 1; round <= 3; round++) {
+    await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
+    patternKinds.push(app.game.question.kind);
+    assert.equal(await alex.locator('#question-type').textContent(), '🧩 Number pattern');
+    assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
+    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '45');
+    assert.equal(await alex.locator('#reasoning').isVisible(), false);
+    await fits(alex);
+    await fits(host);
+    if (round === 1) {
+      await screenshot(alex, 'player-pattern-question.png');
+      await alex.reload();
+      await alex.locator('#question-type').filter({ hasText: 'Number pattern' }).waitFor();
+    }
+    await tap(alex, String(app.game.question.answer));
+    await alex.locator('[data-key="submit"]').click();
+    await alex.locator('#reasoning').waitFor();
+    assert.equal(await alex.locator('#reasoning').textContent(), app.game.question.explanation);
+    await fits(alex);
+    await fits(host);
+    if (round === 3) await screenshot(alex, 'player-pattern-reveal.png');
+    await host.locator('#next').click();
+  }
+  assert.deepEqual(patternKinds, ['next', 'previous', 'missing']);
   assert.deepEqual(errors, [], 'Browser JavaScript errors');
   assert.deepEqual(externalRequests, [], 'Game assets must be entirely local');
-  console.log(`Browser checks passed: multiplayer, solo, one/two-step stories, mixed question types and timers, story reasoning/reconnect, keypad, scoring, tiebreakers, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
+  console.log(`Browser checks passed: multiplayer, solo, stories, next/previous/missing patterns, three-type mixed games and timers, reasoning/reconnect, keypad, scoring, tiebreakers, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
 } finally {
   await browser?.close();
   await app.close();

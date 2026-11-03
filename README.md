@@ -39,10 +39,11 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 
 ## How to play
 
-1. Pick **Calculations**, **Stories**, or **Mix**, then the operations, largest
+1. Pick **Calculations**, **Stories**, **Patterns**, or **Mix (all three)**, then the operations, largest
    number (5-100), and number of questions (1-50). Set calculation time (5-120
    seconds, default **30**) and story time (15-180 seconds, default **60**)
-   separately. Stories can be **one-step only** or **one- and two-step**.
+   separately. Patterns have their own time setting (5-180 seconds, default
+   **30**). Stories can be **one-step only** or **one- and two-step**.
    Defaults are calculations, all operations, numbers up to 12, and 10 questions.
    One connected player is enough for solo practice;
    join with more players for a multiplayer game.
@@ -72,7 +73,9 @@ Stories practise collecting, giving away, grouping, and equal sharing.
 Two-step stories chain two selected operations of the same kind (collect twice,
 give away twice, groups within groups, or share twice). Each step obeys the
 selected number limit and whole-number rules; a narrow range may only support
-one-step stories for some operations. Mix alternates calculations and stories;
+one-step stories for some operations. Mix cycles through calculations, stories,
+and patterns in a randomly chosen type order, so a game of at least three
+questions includes all three types;
 the mixed-step option alternates one- and two-step stories when available.
 On reveal, the story stays visible and the worked calculation appears underneath.
 Stories never repeat verbatim within a game, although different stories can
@@ -84,6 +87,17 @@ There is no adding zero or multiplying by zero or one. Both operands are within
 the chosen number limit; multiplication answers can be larger (up to 9999).
 If a selected range has too few unique questions, the host receives a clear
 error. Tiebreakers draw unused questions until that pool is exhausted.
+
+**Number patterns** ask for the next number, the number before the first shown,
+or a missing number inside a sequence. Generated sequences count up or down by
+a constant step (including counting by ones, twos, threes, and larger steps
+when the number range permits). All five sequence numbers and the answer are
+whole numbers from zero to the chosen largest number. The selected arithmetic
+operations do not restrict pattern questions. Pattern rounds rotate through
+next, previous, and missing formats, with randomized sequences and no repeated
+prompt in a game. On reveal, the counting rule and complete sequence appear.
+Small ranges have fewer unique patterns; increase the range or reduce the
+question count if the host reports too few questions.
 
 ## Reconnecting and privacy
 

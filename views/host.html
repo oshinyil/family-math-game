@@ -17,7 +17,7 @@
           <h2>Make it your game</h2>
           <form id="settings-form">
             <div class="settings-fields story-settings">
-              <label>Question type<select id="question-type"><option value="calculations">Calculations</option><option value="stories">Stories</option><option value="mix">Mix</option></select></label>
+              <label>Question type<select id="question-type"><option value="calculations">Calculations</option><option value="stories">Stories</option><option value="patterns">Patterns</option><option value="mix">Mix (all three)</option></select></label>
               <label>Story challenge<select id="story-steps"><option value="one">One-step only</option><option value="mixed">One- and two-step</option></select></label>
             </div>
             <fieldset><legend>What are we practising?</legend><div class="operations">
@@ -31,8 +31,9 @@
               <label>Questions<input id="question-count" type="number" min="1" max="50" value="10" required></label>
               <label>Calculation seconds<input id="question-seconds" type="number" min="5" max="120" value="30" required></label>
               <label>Story seconds<input id="story-seconds" type="number" min="15" max="180" value="60" required></label>
+              <label>Pattern seconds<input id="pattern-seconds" type="number" min="5" max="180" value="30" required></label>
             </div>
-            <p class="muted">Same level for everyone. Whole-number answers, no negatives. Both operands stay within your limit; multiplication answers can be larger.</p>
+            <p class="muted">Same level for everyone. Operations apply to calculations and stories. Patterns count up or down within your number limit. Multiplication answers can be larger.</p>
             <button id="start" type="submit" class="primary" disabled>Start the adventure →</button>
           </form>
         </div>

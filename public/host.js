@@ -77,7 +77,7 @@ function render() {
     $('host-status').textContent = reveal ? 'Answer time!' : `${state.players.filter(p => p.submitted).length} locked in`;
     renderQuestion(state, $('host-equation'), $('host-type'), $('host-reasoning'));
     $('host-prompt').textContent = reveal ? 'A little wiser, all together.' : 'Give everyone a little thinking space.';
-    $('correct-answer').hidden = !reveal || state.question.type === 'story';
+    $('correct-answer').hidden = !reveal || state.question.type !== 'calculation';
     $('correct-answer').textContent = reveal ? `The answer is ${state.question.answer}` : '';
     $('next').hidden = !reveal;
     $('next').textContent = state.isTiebreaker || state.round >= state.settings.questionCount ?
@@ -97,6 +97,7 @@ $('settings-form').addEventListener('submit', event => {
     questionCount: Number($('question-count').value),
     seconds: Number($('question-seconds').value),
     storySeconds: Number($('story-seconds').value),
+    patternSeconds: Number($('pattern-seconds').value),
     questionType: $('question-type').value,
     storySteps: $('story-steps').value,
   });
