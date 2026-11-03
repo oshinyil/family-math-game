@@ -136,6 +136,54 @@ test('one player starts solo practice, reveals early, scores, finishes and repla
   assert.equal(f.a.state.players[0].score, 0);
 });
 
+test('story players share text and duration, with reasoning withheld until reveal', async t => {
+  const f = await fixture(t);
+  assert.equal((await send(f.host, 'start', { ...settings, questionType: 'stories', storySteps: 'mixed', storySeconds: 75 })).ok, true);
+  await ready(f);
+  assert.equal(f.a.state.question.type, 'story');
+  assert.deepEqual(f.a.state.question, f.b.state.question);
+  assert.equal(f.a.state.durationMs, 75000);
+  assert.equal(f.a.state.deadline - f.game.startedAt, 75000);
+  assert.equal('answer' in f.a.state.question, false);
+  assert.equal('explanation' in f.a.state.question, false);
+  assert.equal('steps' in f.a.state.question, false);
+  await answer(f.a, f.game.question.answer);
+  await answer(f.b, f.game.question.answer);
+  await waitState(f.b, s => s?.phase === 'reveal');
+  assert.equal(f.b.state.question.explanation, f.game.question.explanation);
+  assert.deepEqual(f.b.state.players.map(p => p.score), [1, 1]);
+});
+
+test('mixed rounds schedule their own timer, timeout saved stories and retain deadlines on reconnect', () => {
+  let now = 100;
+  const scheduled = [];
+  const game = new Game({ now: () => now, schedule: (callback, ms) => { scheduled.push({ callback, ms }); return 1; }, cancel: () => {} });
+  const player = game.join({ name: 'Explorer' });
+  game.connect(player, 'socket');
+  game.start({ ...settings, questionCount: 4, questionType: 'mix', storySeconds: 90, storySteps: 'mixed' });
+  const types = [];
+  for (let round = 0; round < 4; round++) {
+    const story = game.question.type === 'story';
+    const duration = story ? 90000 : 5000;
+    types.push(game.question.type);
+    assert.equal(game.deadline - now, duration);
+    assert.equal(game.snapshot(player).durationMs, duration);
+    assert.equal(scheduled.at(-1).ms, duration);
+    const deadline = game.deadline;
+    game.disconnect(player, 'socket');
+    game.connect(player, 'socket');
+    assert.equal(game.snapshot(player).deadline, deadline);
+    game.answer(player, { questionId: game.question.id, value: String(game.question.answer), submit: false });
+    now = deadline;
+    scheduled.at(-1).callback();
+    assert.equal(game.phase, 'reveal');
+    assert.equal(player.score, round + 1);
+    game.next();
+  }
+  assert.equal(game.phase, 'finished');
+  assert.deepEqual(types.slice(0, 2).sort(), ['calculation', 'story']);
+});
+
 test('all twelve avatar choices are accepted by the server; unknown avatars use the default', () => {
   const game = new Game();
   assert.equal(Object.keys(avatars).length, 12);

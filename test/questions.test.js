@@ -38,10 +38,60 @@ test('generator respects operation selection and refuses impossible settings', (
   assert.ok(questionPool(settings).every(q => q.op === '/'));
   assert.throws(() => generateDeck({ ...settings, questionCount: 50 }), /Only .* different questions/);
   for (const change of [{ seconds: 0 }, { seconds: '30' }, { maxNumber: 101 }, { questionCount: 51 },
-    { operations: [] }, { operations: ['bad'] }, { questionCount: NaN }]) {
+    { operations: [] }, { operations: ['bad'] }, { questionCount: NaN },
+    { storySeconds: 14 }, { storySeconds: 181 }, { storySeconds: '60' },
+    { questionType: 'unknown' }, { storySteps: 'unknown' }]) {
     assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, ...change }));
   }
   assert.deepEqual(validateSettings({ ...DEFAULT_SETTINGS, operations: ['+', '+'] }).operations, ['+']);
+});
+
+test('story questions obey each operation and chain safe whole-number steps without repeats', () => {
+  for (const maxNumber of [5, 12, 100]) {
+    for (const op of ['+', '-', '*', '/']) {
+      for (const storySteps of ['one', 'mixed']) {
+        const deck = generateDeck({ ...DEFAULT_SETTINGS, maxNumber, questionCount: 1,
+          operations: [op], questionType: 'stories', storySteps });
+        const text = new Set();
+        for (const q of deck) {
+          assert.equal(q.type, 'story');
+          assert.ok(!text.has(q.text));
+          text.add(q.text);
+          assert.ok(q.text.endsWith('?'));
+          assert.ok(q.text.length <= 240, q.text);
+          assert.ok(q.steps.length === 1 || (storySteps === 'mixed' && q.steps.length === 2));
+          let previous;
+          for (const step of q.steps) {
+            assert.equal(step.op, op);
+            assert.ok(step.a >= 0 && step.a <= maxNumber);
+            assert.ok(step.b >= 1 && step.b <= maxNumber);
+            const expected = op === '+' ? step.a + step.b : op === '-' ? step.a - step.b :
+              op === '*' ? step.a * step.b : step.a / step.b;
+            assert.equal(step.answer, expected);
+            assert.ok(Number.isInteger(expected) && expected >= 0 && expected <= 9999);
+            if (op === '*') assert.ok(step.a >= 2 && step.b >= 2);
+            if (op === '/') assert.ok(step.b >= 2 && expected >= 2);
+            if (previous !== undefined) assert.equal(step.a, previous);
+            previous = step.answer;
+          }
+          assert.equal(q.answer, previous);
+          assert.ok(q.explanation.endsWith(`= ${q.answer}`));
+        }
+        if (maxNumber >= 12 && storySteps === 'mixed') {
+          assert.deepEqual(deck.slice(-2).map(q => q.steps.length).sort(), [1, 2]);
+        }
+      }
+    }
+  }
+});
+
+test('mix includes both types and mixed-story challenges include both step counts', () => {
+  for (let i = 0; i < 10; i++) {
+    const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'mix', storySteps: 'mixed' });
+    const firstFour = deck.slice(-4);
+    assert.deepEqual([...new Set(firstFour.map(q => q.type))].sort(), ['calculation', 'story']);
+    assert.deepEqual(firstFour.filter(q => q.type === 'story').map(q => q.steps.length).sort(), [1, 2]);
+  }
 });
 
 test('network policy permits only loopback/private IPv4 and same-origin browser requests', () => {

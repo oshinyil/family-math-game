@@ -1,4 +1,4 @@
-import { $, avatars, equation, showError, emit, connection, playerChip, finalScreen, updateTimer } from './shared.js';
+import { $, avatars, renderQuestion, showError, emit, connection, playerChip, finalScreen, updateTimer } from './shared.js';
 
 const socket = io({ autoConnect: false });
 let state;
@@ -99,8 +99,7 @@ function render() {
     finalScreen(state);
   } else {
     $('round-label').textContent = state.isTiebreaker ? '⚡ Tiebreaker · fastest correct answer wins' : `Question ${state.round} of ${state.settings.questionCount}`;
-    $('equation').textContent = `${equation(state.question)} = ${state.phase === 'reveal' ? state.question.answer : '?'}`;
-    $('equation').classList.toggle('long', $('equation').textContent.length > 11);
+    renderQuestion(state, $('equation'), $('question-type'), $('reasoning'));
     $('mini-scores').replaceChildren(...state.players.map(p => playerChip(p, true)));
     if (state.phase === 'reveal') {
       $('feedback').textContent = !me.played ? 'Thanks for cheering!' : me.correct ? '✓ Brilliant! +1 point' : '✗ Good try! Keep going.';

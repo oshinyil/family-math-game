@@ -4,6 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { createApp } from '../server.js';
 import { joinUrls } from '../lib/network.js';
+import { DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
 
 const output = path.resolve(process.env.SCREENSHOT_DIR ?? 'artifacts');
 await mkdir(output, { recursive: true });
@@ -176,9 +177,78 @@ try {
   await alex.locator('#play-screen').waitFor();
   assert.equal(app.game.participants.length, 1);
   assert.equal(app.game.snapshot().players[0].score, 0);
+  await host.locator('#end-game').click();
+  await host.locator('#host-lobby').waitFor();
+  await host.locator('#question-type').selectOption('stories');
+  await host.locator('#story-steps').selectOption('mixed');
+  await host.locator('#question-count').fill('2');
+  await host.locator('#max-number').fill('100');
+  await host.locator('#story-seconds').fill('75');
+  await screenshot(host, 'story-host-setup.png', true);
+  await alex.setViewportSize({ width: 1366, height: 657 });
+  await host.locator('#start').click();
+  const storyStepCounts = [];
+  const longestStory = generateDeck({ ...DEFAULT_SETTINGS, maxNumber: 100, questionType: 'stories', storySteps: 'mixed' })
+    .reduce((a, b) => a.text.length > b.text.length ? a : b);
+  for (let round = 1; round <= 2; round++) {
+    await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
+    assert.equal(app.game.question.type, 'story');
+    storyStepCounts.push(app.game.question.steps.length);
+    assert.equal(app.game.durationMs, 75000);
+    assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '75');
+    assert.equal(await alex.locator('#question-type').textContent(), '📖 Story');
+    assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
+    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    assert.equal(await alex.locator('#reasoning').isVisible(), false);
+    const timerPercent = await alex.locator('#timer-fill').evaluate(element => parseFloat(element.style.width));
+    assert.ok(timerPercent > 90 && timerPercent <= 100, 'Story timer must use story duration');
+    await fits(alex);
+    await fits(host);
+    if (round === 1) {
+      const originalText = app.game.question.text;
+      await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, longestStory.text);
+      await fits(alex);
+      await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, originalText);
+      await screenshot(alex, 'player-story-question.png');
+      await alex.reload();
+      await alex.locator('#question-type').filter({ hasText: 'Story' }).waitFor();
+      assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '75');
+    }
+    await tap(alex, String(app.game.question.answer));
+    await alex.locator('[data-key="submit"]').click();
+    await alex.locator('#reasoning').waitFor();
+    assert.equal(await alex.locator('#reasoning').textContent(), app.game.question.explanation);
+    assert.equal(await host.locator('#host-reasoning').textContent(), app.game.question.explanation);
+    await fits(alex);
+    await fits(host);
+    const originalText = app.game.question.text;
+    for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
+      await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, longestStory.text);
+      await fits(page);
+      await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, originalText);
+    }
+    if (round === 2) await screenshot(alex, 'player-story-reveal.png');
+    await host.locator('#next').click();
+  }
+  assert.deepEqual(storyStepCounts, [1, 2]);
+  await host.locator('#host-final').waitFor();
+  await host.locator('#new-game').click();
+  await host.locator('#question-type').selectOption('mix');
+  await host.locator('#start').click();
+  const mixedTypes = [];
+  for (let round = 1; round <= 2; round++) {
+    await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
+    mixedTypes.push(app.game.question.type);
+    assert.equal(app.game.durationMs, app.game.question.type === 'story' ? 75000 : 5000);
+    await tap(alex, String(app.game.question.answer));
+    await alex.locator('[data-key="submit"]').click();
+    await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
+    await host.locator('#next').click();
+  }
+  assert.deepEqual(mixedTypes.sort(), ['calculation', 'story']);
   assert.deepEqual(errors, [], 'Browser JavaScript errors');
   assert.deepEqual(externalRequests, [], 'Game assets must be entirely local');
-  console.log(`Browser checks passed: host + two LAN players, solo practice/replay, keypad, keyboard, early/timeout reveal, timer colors, scoring, tie/tiebreaker, refresh, replay, removal, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
+  console.log(`Browser checks passed: multiplayer, solo, one/two-step stories, mixed question types and timers, story reasoning/reconnect, keypad, scoring, tiebreakers, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
 } finally {
   await browser?.close();
   await app.close();
@@ -194,7 +264,7 @@ async function fits(page) {
     scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight,
   }));
   assert.ok(dimensions.scrollWidth <= dimensions.width, JSON.stringify(dimensions));
-  assert.ok(dimensions.scrollHeight <= dimensions.height, `Player screen must fit laptop viewport: ${JSON.stringify(dimensions)}`);
+  assert.ok(dimensions.scrollHeight <= dimensions.height, `Screen must fit laptop viewport (${page.url()}): ${JSON.stringify(dimensions)}`);
 }
 
 async function screenshot(page, filename, fullPage = false) {

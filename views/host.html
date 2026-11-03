@@ -16,6 +16,10 @@
         <div class="card settings-card">
           <h2>Make it your game</h2>
           <form id="settings-form">
+            <div class="settings-fields story-settings">
+              <label>Question type<select id="question-type"><option value="calculations">Calculations</option><option value="stories">Stories</option><option value="mix">Mix</option></select></label>
+              <label>Story challenge<select id="story-steps"><option value="one">One-step only</option><option value="mixed">One- and two-step</option></select></label>
+            </div>
             <fieldset><legend>What are we practising?</legend><div class="operations">
               <label><input type="checkbox" name="op" value="+" checked><span>+<small>Add</small></span></label>
               <label><input type="checkbox" name="op" value="-" checked><span>−<small>Subtract</small></span></label>
@@ -25,7 +29,8 @@
             <div class="settings-fields">
               <label>Largest number<input id="max-number" type="number" min="5" max="100" value="12" required></label>
               <label>Questions<input id="question-count" type="number" min="1" max="50" value="10" required></label>
-              <label>Seconds each<input id="question-seconds" type="number" min="5" max="120" value="30" required></label>
+              <label>Calculation seconds<input id="question-seconds" type="number" min="5" max="120" value="30" required></label>
+              <label>Story seconds<input id="story-seconds" type="number" min="15" max="180" value="60" required></label>
             </div>
             <p class="muted">Same level for everyone. Whole-number answers, no negatives. Both operands stay within your limit; multiplication answers can be larger.</p>
             <button id="start" type="submit" class="primary" disabled>Start the adventure →</button>
@@ -42,7 +47,7 @@
       <div class="host-grid">
         <div class="card host-question">
           <div class="timer"><div id="timer" class="timer-track" role="progressbar" aria-label="Time remaining" aria-valuemin="0"><div id="timer-fill"></div></div><div class="timer-text"><span id="timer-caption">Thinking time</span><strong id="seconds"></strong></div></div>
-          <p id="host-prompt">Give everyone a little thinking space.</p><div id="host-equation" class="equation"></div>
+          <p id="host-prompt">Give everyone a little thinking space.</p><div id="host-type" class="question-type"></div><div id="host-equation" class="equation"></div><div id="host-reasoning" class="reasoning" hidden></div>
           <div id="correct-answer" class="correct-answer" hidden></div>
           <button id="next" class="primary" hidden>Next question →</button>
         </div>

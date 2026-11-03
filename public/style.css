@@ -49,7 +49,7 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .player-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
 .player-chip { padding: 8px 14px; border-radius: 22px; background: #ffffffed; color: #4f4681; font-size: 13px; font-weight: 650; }
 .play-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 440px); align-items: center; gap: 24px; }
-.question-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 2.2vh, 18px); padding: clamp(24px, 4vh, 40px) 24px; text-align: center; }
+.question-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 1.5vh, 12px); padding: 20px 24px; text-align: center; }
 .progress { font-size: 20px; font-weight: 750; color: var(--muted); }
 .timer { width: 100%; max-width: 560px; }
 .timer-track { height: 20px; background: #e5e7eb; border-radius: 24px; overflow: hidden; }
@@ -57,6 +57,19 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .timer-text { display: flex; justify-content: space-between; color: var(--muted); font-size: 16px; font-weight: 700; margin-top: 8px; }
 .equation { font-size: clamp(44px, 7vw, 90px); font-weight: 800; line-height: 1.1; white-space: nowrap; letter-spacing: -2px; }
 .question-card .equation.long, .host-question .equation.long { font-size: clamp(28px, 4.4vw, 60px); }
+.question-type { color: var(--indigo); font-size: 13px; font-weight: 750; }
+.question-card .equation.story, .host-question .equation.story { font-size: 24px; line-height: 1.45; letter-spacing: 0; white-space: normal; text-align: left; margin: 0; }
+.reasoning { color: var(--green-dark); font-size: 19px; font-weight: 750; line-height: 1.4; }
+.question-card.story-card { gap: 8px; padding: 16px 24px; }
+.story-card .answer-box { height: 76px; font-size: 45px; }
+.story-card .answer-box.locked { font-size: 30px; }
+.story-card .feedback { font-size: 21px; }
+.host-question.story-card .question-type { margin: 8px 0; }
+.host-question.story-card { padding: 16px 20px; }
+.host-question.story-card .equation.story { font-size: 22px; line-height: 1.4; }
+.host-question.story-card .correct-answer { margin-bottom: 10px; }
+.host-question.story-card .reasoning { margin: 10px 0; }
+.host-question.story-card p { margin: 8px 0; }
 .answer-box { min-width: 240px; height: clamp(76px, 14vh, 112px); padding: 0 28px; display: grid; place-items: center; font-size: clamp(40px, 9vh, 72px); font-weight: 800; color: var(--indigo); border: 5px solid var(--line); border-radius: 24px; background: #eef2ff; }
 .answer-box.locked { font-size: clamp(26px, 5vh, 38px); color: var(--green-dark); border-color: var(--green); background: #f0fdf4; }
 .answer-box.right { color: var(--green-dark); border-color: var(--green); background: #f0fdf4; }
@@ -80,6 +93,9 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .operations span { border: 2px solid #e0e7ff; background: #f8faff; display: block; text-align: center; padding: 6px 0; border-radius: 12px; font-size: 27px; font-weight: 750; cursor: pointer; }
 .operations input:checked + span { border-color: #818cf8; background: #eef2ff; }.operations small { display: block; font-size: 11px; }
 .settings-fields { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }.settings-fields label { font-size: 12px; font-weight: 650; }.settings-fields input { margin-top: 8px; padding: 10px; }
+.settings-fields:not(.story-settings) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.story-settings { grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+.story-settings select { width: 100%; padding: 10px 5px; background: #f8faff; color: var(--ink); border: 2px solid var(--line); border-radius: 12px; margin-top: 8px; }
 .settings-card .muted { margin: 14px 0 18px; }.settings-card .primary { width: 100%; }
 .join-card .eyebrow { font-size: 10px; }.join-card h2 { margin-bottom: 13px; }
 .join-details { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e0e7ff; padding-bottom: 16px; }.join-details img { width: 120px; height: 120px; }.join-details p { font-size: 13px; margin-bottom: 7px; }
@@ -100,6 +116,7 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
   header { padding: 15px 18px; min-height: 76px; flex-wrap: wrap; }.brand { font-size: 19px; }.header-right { font-size: 16px; gap: 12px; flex-wrap: wrap; max-width: 100%; }.pill { font-size: 11px; }
   main { padding: 4px 16px 16px; }.host-grid, .play-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }.card { padding: 24px; }
   .equation { font-size: clamp(36px, 10vw, 74px); }.answer-box { max-width: 100%; min-width: 200px; font-size: 48px; }
+  .question-card .equation.story, .host-question .equation.story { font-size: 21px; }
   .key { height: 65px; }.keypad { gap: 14px; }.center-card { padding: 28px 20px; }.center-card h1 { font-size: 30px; }
   .avatars { gap: 4px; }.avatars button { padding: 5px; font-size: 26px; }.host-tag { display: none; }.page-heading h1 { font-size: 28px; }.join-details img { width: 105px; height: 105px; }.join-urls a { font-size: 15px; }
 }

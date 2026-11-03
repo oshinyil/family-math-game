@@ -39,9 +39,12 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 
 ## How to play
 
-1. Pick operations, largest number (5-100), number of questions (1-50), and
-   seconds per question (5-120). Defaults are all operations, numbers up to 12,
-   10 questions, and 30 seconds. One connected player is enough for solo practice;
+1. Pick **Calculations**, **Stories**, or **Mix**, then the operations, largest
+   number (5-100), and number of questions (1-50). Set calculation time (5-120
+   seconds, default **30**) and story time (15-180 seconds, default **60**)
+   separately. Stories can be **one-step only** or **one- and two-step**.
+   Defaults are calculations, all operations, numbers up to 12, and 10 questions.
+   One connected player is enough for solo practice;
    join with more players for a multiplayer game.
 2. Everyone gets the **same question at the same time**. Use the large on-screen
    number pad, Clear, backspace, and Submit. Laptop number keys, Backspace,
@@ -62,7 +65,19 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 6. Play again keeps the players and settings and resets scores. New game returns
    to setup. The host can remove stale names from the lobby.
 
-Questions are randomly generated on the server, not from a fixed bank. Addition
+Questions are randomly generated on the server, not from a fixed bank. Stories
+combine randomized numbers, names, items, places, and templates; no AI or
+internet is involved. Both players always get the same story and time limit.
+Stories practise collecting, giving away, grouping, and equal sharing.
+Two-step stories chain two selected operations of the same kind (collect twice,
+give away twice, groups within groups, or share twice). Each step obeys the
+selected number limit and whole-number rules; a narrow range may only support
+one-step stories for some operations. Mix alternates calculations and stories;
+the mixed-step option alternates one- and two-step stories when available.
+On reveal, the story stays visible and the worked calculation appears underneath.
+Stories never repeat verbatim within a game, although different stories can
+practise the same arithmetic. Calculation questions do not repeat within a game.
+Addition
 and multiplication do not repeat with reversed operands. Subtraction is
 non-negative; division is exact with divisors and quotients at least two.
 There is no adding zero or multiplying by zero or one. Both operands are within

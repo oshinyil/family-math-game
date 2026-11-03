@@ -6,6 +6,19 @@ export const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 export const $ = id => document.getElementById(id);
 export const equation = q => `${q.a} ${symbols[q.op]} ${q.b}`;
 
+export function renderQuestion(state, questionElement, labelElement, reasoningElement) {
+  const story = state.question.type === 'story';
+  const reveal = state.phase === 'reveal';
+  questionElement.textContent = story ? state.question.text :
+    `${equation(state.question)} = ${reveal ? state.question.answer : '?'}`;
+  questionElement.classList.toggle('story', story);
+  questionElement.classList.toggle('long', !story && questionElement.textContent.length > 11);
+  questionElement.closest('.card').classList.toggle('story-card', story);
+  labelElement.textContent = story ? '📖 Story' : '🔢 Calculation';
+  reasoningElement.hidden = !story || !reveal;
+  reasoningElement.textContent = story && reveal ? state.question.explanation : '';
+}
+
 export function showError(message) {
   $('error').textContent = message;
   $('error').hidden = !message;
@@ -101,12 +114,12 @@ export function finalScreen(state) {
 export function updateTimer(state, offset) {
   const active = state.phase === 'question';
   const remaining = active ? Math.max(0, state.deadline - (Date.now() + offset)) : 0;
-  const fraction = remaining / (state.settings.seconds * 1000);
+  const fraction = remaining / state.durationMs;
   $('seconds').textContent = active ? `${Math.ceil(remaining / 1000)}s` : '';
   $('timer-caption').textContent = active ? (state.isTiebreaker ? 'Speed counts!' : 'Time remaining') : 'Answer revealed';
   $('timer-fill').style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
   $('timer-fill').style.background = fraction > 0.5 ? '#22c55e' : fraction > 0.2 ? '#f59e0b' : '#ef4444';
-  $('timer').setAttribute('aria-valuemax', String(state.settings.seconds));
+  $('timer').setAttribute('aria-valuemax', String(state.durationMs / 1000));
   $('timer').setAttribute('aria-valuenow', String(Math.ceil(remaining / 1000)));
   return remaining;
 }

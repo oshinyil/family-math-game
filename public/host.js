@@ -1,4 +1,4 @@
-import { $, avatars, equation, showError, emit, connection, scoreboard, finalScreen, updateTimer } from './shared.js';
+import { $, avatars, renderQuestion, showError, emit, connection, scoreboard, finalScreen, updateTimer } from './shared.js';
 
 const socket = io({ autoConnect: false });
 let state;
@@ -75,13 +75,13 @@ function render() {
     const reveal = state.phase === 'reveal';
     $('host-round').textContent = state.isTiebreaker ? '⚡ Tiebreaker' : `Question ${state.round} of ${state.settings.questionCount}`;
     $('host-status').textContent = reveal ? 'Answer time!' : `${state.players.filter(p => p.submitted).length} locked in`;
-    $('host-equation').textContent = `${equation(state.question)} = ${reveal ? state.question.answer : '?'}`;
-    $('host-equation').classList.toggle('long', $('host-equation').textContent.length > 11);
+    renderQuestion(state, $('host-equation'), $('host-type'), $('host-reasoning'));
     $('host-prompt').textContent = reveal ? 'A little wiser, all together.' : 'Give everyone a little thinking space.';
-    $('correct-answer').hidden = !reveal;
+    $('correct-answer').hidden = !reveal || state.question.type === 'story';
     $('correct-answer').textContent = reveal ? `The answer is ${state.question.answer}` : '';
     $('next').hidden = !reveal;
-    $('next').textContent = state.isTiebreaker || state.round >= state.settings.questionCount ? 'See the winners →' : 'Next question →';
+    $('next').textContent = state.isTiebreaker || state.round >= state.settings.questionCount ?
+      (state.participantCount === 1 ? 'See your results →' : 'See the winners →') : 'Next question →';
     $('board-heading').textContent = reveal ? 'Look at that thinking!' : 'The thinking team';
     scoreboard($('game-roster'), state, reveal);
     updateTimer(state, offset);
@@ -96,6 +96,9 @@ $('settings-form').addEventListener('submit', event => {
     maxNumber: Number($('max-number').value),
     questionCount: Number($('question-count').value),
     seconds: Number($('question-seconds').value),
+    storySeconds: Number($('story-seconds').value),
+    questionType: $('question-type').value,
+    storySteps: $('story-steps').value,
   });
 });
 for (const [id, event] of [['next', 'next'], ['tiebreaker', 'tiebreaker'], ['new-game', 'lobby']]) {
@@ -111,6 +114,6 @@ setInterval(() => {
     if (!socket.connected) button.disabled = true;
     else if (button.id !== 'start') button.disabled = false;
   }
-  for (const input of document.querySelectorAll('#settings-form input')) input.disabled = !socket.connected;
+  for (const input of document.querySelectorAll('#settings-form input, #settings-form select')) input.disabled = !socket.connected;
   if (state?.phase === 'lobby' && socket.connected) $('start').disabled = state.players.filter(p => p.connected).length < 1;
 }, 100);
