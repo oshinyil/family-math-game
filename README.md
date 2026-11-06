@@ -13,12 +13,13 @@ and optional auto-continue, then welcome players into the lobby.
 ![Host setup with story questions, separate question timers, and two players ready in the lobby](docs/screenshots/host-setup.jpg)
 
 **Think, then tap.** Everyone gets the same question, with a large on-screen number
-pad. Play calculations, generated stories, or next/previous/missing-number patterns.
+pad. Play calculations, generated stories, number patterns, comparisons and
+balances, everyday math, or visual puzzles.
 
 ![Player answering a generated story question using the large numeric keypad](docs/screenshots/player-question.jpg)
 
-**Learn from the reveal.** Correct answers earn a point; stories and patterns show
-the calculation or counting rule behind the answer.
+**Learn from the reveal.** Correct answers earn a point; every mode shows
+the calculation, comparison, or counting rule behind the answer.
 
 ![Answer reveal showing the story solution, a correct answer, and one point awarded](docs/screenshots/answer-reveal.jpg)
 
@@ -69,14 +70,20 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 
 ## How to play
 
-1. Pick **Calculations**, **Stories**, **Patterns**, or **Mix (all three)**, then the operations,
+1. Pick **Calculations**, **Stories**, **Patterns**, **Compare and balance**,
+   **Everyday math**, **Visual puzzles**, or **Mix (all six)**, then the operations,
    **Max number** (5-100), and number of questions (1-50). For multiplication,
    this caps the **result**: at 50, 6 × 8 = 48 is allowed, but 48 × 49 = 2352
    is not. For addition, subtraction and division, it caps the operands instead;
-   for patterns, it caps every sequence number. Set calculation time (5-120
+   for patterns, it caps every sequence number; for visual puzzles, it caps
+   the total number of shapes (up to 24 for readable drawings). Set calculation time (5-120
    seconds, default **30**) and story time (15-180 seconds, default **60**)
    separately. Patterns have their own time setting (5-180 seconds, default
-   **30**). Stories can be **one-step only** or **one- and two-step**.
+   **30**). Compare/balance and visual puzzles each default to **45 seconds**
+   (5-180); everyday math defaults to **60 seconds** (15-180).
+   Stories can be **one-step only** or **one- and two-step**.
+   Operation choices apply to calculations, stories, compare/balance and
+   everyday math, but not patterns or visual puzzles.
    Defaults are calculations, all operations, numbers up to 12, and 10 questions.
    One connected player is enough for solo practice;
    join with more players for a multiplayer game.
@@ -125,8 +132,8 @@ Two-step stories chain two selected operations of the same kind (collect twice,
 give away twice, groups within groups, or share twice). Each step obeys the
 selected number limit and whole-number rules; a narrow range may only support
 one-step stories for some operations. Mix cycles through calculations, stories,
-and patterns in a randomly chosen type order, so a game of at least three
-questions includes all three types;
+patterns, compare/balance, everyday math and visual puzzles in a randomly chosen
+type order, so a game of at least six questions includes all six types;
 the mixed-step option alternates one- and two-step stories when available.
 On reveal, the story stays visible and the worked calculation appears underneath.
 Stories never repeat verbatim within a game, although different stories can
@@ -158,6 +165,30 @@ prompt in a game. Rule types rotate too, rather than letting one type dominate.
 On reveal, the ellipsis becomes the answer and the rule and complete sequence appear.
 Small ranges have fewer unique patterns; increase the range or reduce the
 question count if the host reports too few questions.
+
+**Compare and balance** alternates comparisons and missing-value equations
+when the selected operations/range support both. Comparison prompts explicitly
+label **Left** and **Right**: enter **1** if left is larger, **2** if right is
+larger, or **0** if equal. Balance prompts instead ask for the actual missing
+number, shown as **`...`**, to make both sides equal. The reveal evaluates both
+sides and explains the answer. Very small multiplication/division pools may
+only support comparisons.
+
+**Everyday math** rotates money, time and practical packing/counting situations.
+Money uses whole-number **cents**, not decimal currency; time uses whole
+**minutes**, not clock notation. For example, spending 5 of 12 cents leaves
+7 cents, or splitting 20 minutes over 4 days gives 5 minutes per day.
+These are generated one-step problems using the selected operations and the
+same operand/product limits as calculations, with a worked solution on reveal.
+
+**Visual puzzles** draw circles, squares and triangles locally. Count either
+all shapes or only the named shape; each question states which. Shape differences
+and colors help distinguish them, but color alone is never required. A screen
+reader description lists every row's shapes. Arrangements and counting targets
+are generated, never a fixed picture bank. Totals stay within Max number and
+at most **24 shapes**, in at most four rows, so drawings remain readable.
+The reveal shows the row-by-row count and total. Different arrangements can
+practise the same total, but the same arrangement/target does not repeat.
 
 ## Reconnecting and privacy
 

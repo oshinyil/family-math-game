@@ -330,11 +330,12 @@ test('mixed rounds schedule each type timer, timeout saved answers and retain de
   const game = new Game({ now: () => now, schedule: (callback, ms) => { scheduled.push({ callback, ms }); return 1; }, cancel: () => {} });
   const player = game.join({ name: 'Explorer' });
   game.connect(player, 'socket');
-  game.start({ ...settings, questionCount: 6, questionType: 'mix', storySeconds: 90, patternSeconds: 45, storySteps: 'mixed' });
+  game.start({ ...settings, questionCount: 6, questionType: 'mix', storySeconds: 90, patternSeconds: 45,
+    compareSeconds: 35, everydaySeconds: 80, visualSeconds: 40, storySteps: 'mixed' });
   const types = [];
   for (let round = 0; round < 6; round++) {
-    const story = game.question.type === 'story';
-    const duration = story ? 90000 : game.question.type === 'pattern' ? 45000 : 5000;
+    const duration = { story: 90000, pattern: 45000, calculation: 5000, compare: 35000,
+      everyday: 80000, visual: 40000 }[game.question.type];
     types.push(game.question.type);
     assert.equal(game.deadline - now, duration);
     assert.equal(game.snapshot(player).durationMs, duration);
@@ -351,9 +352,35 @@ test('mixed rounds schedule each type timer, timeout saved answers and retain de
     game.next();
   }
   assert.equal(game.phase, 'finished');
-  assert.deepEqual(types.slice(0, 3).sort(), ['calculation', 'pattern', 'story']);
+  assert.deepEqual(types.sort(), ['calculation', 'compare', 'everyday', 'pattern', 'story', 'visual']);
 });
 
+test('new modes share public prompts/visuals, keep solutions private and score keypad answers', async t => {
+  const f = await fixture(t);
+  for (const [questionType, timerKey, seconds] of [
+    ['compare', 'compareSeconds', 35], ['everyday', 'everydaySeconds', 80], ['visual', 'visualSeconds', 40],
+  ]) {
+    assert.equal((await send(f.host, 'start', { ...settings, questionType, [timerKey]: seconds })).ok, true);
+    await ready(f);
+    assert.equal(f.a.state.question.type, questionType);
+    assert.deepEqual(f.a.state.question, f.b.state.question);
+    assert.equal(f.a.state.durationMs, seconds * 1000);
+    for (const socket of [f.a, f.b, f.host]) {
+      for (const key of ['answer', 'explanation', 'steps', 'kind']) assert.equal(key in socket.state.question, false);
+    }
+    if (questionType === 'visual') {
+      assert.deepEqual(f.a.state.question.visual, f.game.question.visual);
+      assert.deepEqual(Object.keys(f.a.state.question.visual).sort(), ['description', 'rows']);
+    }
+    else assert.equal('visual' in f.a.state.question, false);
+    await answer(f.a, f.game.question.answer);
+    await answer(f.b, f.game.question.answer + 1);
+    await waitState(f.b, s => s?.phase === 'reveal');
+    assert.equal(f.b.state.question.explanation, f.game.question.explanation);
+    assert.deepEqual(f.b.state.players.map(p => p.score), [1, 0]);
+    await send(f.host, 'lobby');
+  }
+});
 test('all twelve avatar choices are accepted by the server; unknown avatars use the default', () => {
   const game = new Game();
   assert.equal(Object.keys(avatars).length, 12);

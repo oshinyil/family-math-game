@@ -17,7 +17,7 @@
           <h2>Make it your game</h2>
           <form id="settings-form">
             <div class="settings-fields story-settings">
-              <label>Question type<select id="question-type"><option value="calculations">Calculations</option><option value="stories">Stories</option><option value="patterns">Patterns</option><option value="mix">Mix (all three)</option></select></label>
+              <label>Question type<select id="question-type"><option value="calculations">Calculations</option><option value="stories">Stories</option><option value="patterns">Patterns</option><option value="compare">Compare and balance</option><option value="everyday">Everyday math</option><option value="visual">Visual puzzles</option><option value="mix">Mix (all six)</option></select></label>
               <label>Story challenge<select id="story-steps"><option value="one">One-step only</option><option value="mixed">One- and two-step</option></select></label>
             </div>
             <fieldset><legend>What are we practising?</legend><div class="operations">
@@ -32,10 +32,13 @@
               <label>Calculation seconds<input id="question-seconds" type="number" min="5" max="120" value="30" required></label>
               <label>Story seconds<input id="story-seconds" type="number" min="15" max="180" value="60" required></label>
               <label>Pattern seconds<input id="pattern-seconds" type="number" min="5" max="180" value="30" required></label>
+              <label>Compare / balance seconds<input id="compare-seconds" type="number" min="5" max="180" value="45" required></label>
+              <label>Everyday math seconds<input id="everyday-seconds" type="number" min="15" max="180" value="60" required></label>
+              <label>Visual puzzle seconds<input id="visual-seconds" type="number" min="5" max="180" value="45" required></label>
             </div>
-            <p id="number-limit-help" class="muted">Same level for everyone. Max number caps each multiplication result, including story steps. For addition, subtraction and division it caps the numbers in each step, not the result. Patterns stay within the limit.</p>
+            <p id="number-limit-help" class="muted">Same level for everyone. Max number caps each multiplication result in every mode. For addition, subtraction and division it caps the numbers in each step, not the result. Patterns and visual shape totals stay within the limit. Operations apply to calculations, stories, compare/balance and everyday math.</p>
             <label class="auto-option"><input id="auto-continue" type="checkbox"> Auto-continue after a 5-second reveal</label>
-            <p class="muted auto-note">Leave off for more time to read story and pattern explanations. Tiebreakers stay manual.</p>
+            <p class="muted auto-note">Leave off for more time to read explanations. Tiebreakers stay manual.</p>
             <button id="start" type="submit" class="primary" disabled>Start the adventure →</button>
           </form>
         </div>

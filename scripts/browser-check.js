@@ -7,6 +7,7 @@ import { joinUrls } from '../lib/network.js';
 import { calculationQuestion, DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
 import { patternPool } from '../lib/patterns.js';
+import { comparePool, everydayQuestion, visualPool } from '../lib/rounds.js';
 
 const output = path.resolve(process.env.SCREENSHOT_DIR ?? 'artifacts');
 await mkdir(output, { recursive: true });
@@ -32,6 +33,10 @@ try {
     pages.push(page);
   }
   const [host, alex, sam] = pages;
+  async function assertHostText(text) {
+    await host.waitForFunction(text => document.getElementById('host-equation').textContent === text, text);
+    assert.equal(await host.locator('#host-equation').textContent(), text);
+  }
   await host.goto(`${hostUrl}/host`);
   await host.locator('#connection').filter({ hasText: 'Connected' }).waitFor();
   await host.locator('#join-urls a').first().waitFor();
@@ -257,13 +262,13 @@ try {
     assert.ok(app.game.question.answer <= 50);
     calculationBlanks.push(app.game.question.blank);
     assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
-    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    await assertHostText(app.game.question.text);
     await fits(alex);
     await tap(alex, String(app.game.question.answer));
     await alex.locator('[data-key="submit"]').click();
     await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
     assert.equal(await alex.locator('#equation').textContent(), app.game.question.explanation);
-    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.explanation);
+    await assertHostText(app.game.question.explanation);
     await host.locator('#next').click();
   }
   assert.deepEqual(calculationBlanks.sort(), ['a', 'b', 'result']);
@@ -367,7 +372,7 @@ try {
     assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '75');
     assert.equal(await alex.locator('#question-type').textContent(), '📖 Story');
     assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
-    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    await assertHostText(app.game.question.text);
     assert.equal(await alex.locator('#reasoning').isVisible(), false);
     const timerPercent = await alex.locator('#timer-fill').evaluate(element => parseFloat(element.style.width));
     assert.ok(timerPercent > 90 && timerPercent <= 100, 'Story timer must use story duration');
@@ -417,23 +422,103 @@ try {
   await host.locator('#new-game').click();
   for (const op of ['+', '-', '/']) await host.locator(`input[name="op"][value="${op}"]`).check();
   await host.locator('#question-type').selectOption('mix');
-  await host.locator('#question-count').fill('3');
+  await host.locator('#question-count').fill('6');
   await host.locator('#pattern-seconds').fill('45');
   await host.locator('#start').click();
   const mixedTypes = [];
-  for (let round = 1; round <= 3; round++) {
+  for (let round = 1; round <= 6; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     mixedTypes.push(app.game.question.type);
-    assert.equal(app.game.durationMs, app.game.question.type === 'story' ? 75000 :
-      app.game.question.type === 'pattern' ? 45000 : 5000);
+    assert.equal(app.game.durationMs, { story: 75000, pattern: 45000, calculation: 5000,
+      compare: 45000, everyday: 60000, visual: 45000 }[app.game.question.type]);
     await tap(alex, String(app.game.question.answer));
     await alex.locator('[data-key="submit"]').click();
     await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
     await host.locator('#next').click();
   }
-  assert.deepEqual(mixedTypes.sort(), ['calculation', 'pattern', 'story']);
+  assert.deepEqual(mixedTypes.sort(), ['calculation', 'compare', 'everyday', 'pattern', 'story', 'visual']);
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
+  const bases = [
+    { a: 49, b: 50, op: '+', answer: 99 }, { a: 50, b: 49, op: '-', answer: 1 },
+    { a: 25, b: 4, op: '*', answer: 100 }, { a: 100, b: 4, op: '/', answer: 25 },
+    { a: 48, b: 2, op: '+', answer: 50 }, { a: 47, b: 3, op: '+', answer: 50 },
+  ];
+  const comparisons = comparePool(bases);
+  const newFixtures = [
+    ...comparisons.comparisons.slice(0, 3), ...comparisons.balances,
+    ...bases.slice(0, 4).flatMap(base => [0, 1, 2].map(variant => everydayQuestion(base, variant))),
+    ...visualPool(100).filter(q => q.visual.rows.flat().length === 24).slice(0, 4),
+  ];
+  async function renderFixture(page, question, phase, isHost = false) {
+    await page.evaluate(async ({ question, phase, isHost }) => {
+      const { renderQuestion } = await import('/shared.js');
+      renderQuestion({ question, phase }, document.getElementById(isHost ? 'host-equation' : 'equation'),
+        document.getElementById(isHost ? 'host-type' : 'question-type'),
+        document.getElementById(isHost ? 'host-reasoning' : 'reasoning'));
+    }, { question, phase, isHost });
+  }
+  for (const [mode, timer, seconds] of [
+    ['compare', 'compare-seconds', 120], ['everyday', 'everyday-seconds', 180], ['visual', 'visual-seconds', 120],
+  ]) {
+    await host.locator('#question-type').selectOption(mode);
+    await host.locator(`#${timer}`).fill(String(seconds));
+    await host.locator('#question-count').fill(mode === 'everyday' ? '3' : '2');
+    await host.locator('#start').click();
+    await alex.locator('#question-type').filter({ hasText: mode === 'compare' ? 'Compare' :
+      mode === 'everyday' ? 'Everyday' : 'Visual' }).waitFor();
+    const kinds = [];
+    for (let round = 1; round <= app.game.settings.questionCount; round++) {
+      await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
+      assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
+      await assertHostText(app.game.question.text);
+      assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), String(seconds));
+      kinds.push(app.game.question.kind);
+      if (mode === 'visual') {
+        const image = alex.getByRole('img', { name: app.game.question.visual.description, exact: true });
+        await image.waitFor();
+        assert.equal(await image.locator('span').count(), app.game.question.visual.rows.flat().length);
+        assert.deepEqual(await image.locator('.shape-row').evaluateAll(rows =>
+          rows.map(row => [...row.children].map(shape => shape.dataset.shape))), app.game.question.visual.rows);
+      } else assert.equal(await alex.locator('.visual-puzzle').isVisible(), false);
+      for (const phase of ['question', 'reveal']) {
+        if (phase === 'reveal') {
+          await tap(alex, String(app.game.question.answer));
+          await alex.locator('[data-key="submit"]').click();
+          await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
+          assert.equal(await alex.locator('#reasoning').textContent(), app.game.question.explanation);
+        }
+        if (round === 1) {
+          const fixtures = newFixtures.filter(q => q.type === mode);
+          const longest = fixtures.reduce((a, b) => a.text.length >= b.text.length ? a : b);
+          for (const fixture of fixtures) {
+            await renderFixture(alex, fixture, phase);
+            await renderFixture(host, fixture, phase, true);
+            await fits(host, `${mode} ${phase} host fixture`);
+            for (const viewport of fixture === longest ? tabletViewports : [{ width: 1366, height: 657 }]) {
+              await alex.setViewportSize(viewport);
+              await fits(alex, `${mode} ${phase} ${viewport.width}x${viewport.height}`);
+              assert.equal(await alex.locator('[data-key="submit"]').evaluate(element => {
+                const box = element.getBoundingClientRect();
+                return box.bottom <= innerHeight && box.top >= 0;
+              }), true, `${mode} Submit must remain on screen`);
+              assert.equal(await alex.locator('.question-content').evaluate(element => element.scrollWidth <= element.clientWidth),
+                true, `${mode} content must fit panel width`);
+            }
+            await alex.setViewportSize({ width: 1366, height: 657 });
+          }
+          await renderFixture(alex, app.game.question, phase);
+          await renderFixture(host, app.game.question, phase, true);
+          await screenshot(alex, `player-${mode}-${phase}.png`);
+        }
+      }
+      await host.locator('#next').click();
+    }
+    assert.deepEqual(kinds.sort(), mode === 'compare' ? ['balance', 'compare'] :
+      mode === 'visual' ? ['selected', 'total'] : ['money', 'packing', 'time']);
+    await host.locator('#host-final').waitFor();
+    await host.locator('#new-game').click();
+  }
   await host.locator('#question-type').selectOption('patterns');
   await host.locator('#question-count').fill('6');
   await alex.locator('#edit-profile').click();
@@ -451,7 +536,7 @@ try {
     patternRules.push(app.game.question.rule);
     assert.equal(await alex.locator('#question-type').textContent(), '🧩 Number pattern');
     assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
-    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    await assertHostText(app.game.question.text);
     assert.equal(app.game.question.text.split('\n')[1].split(', ').filter(n => n === '...').length, 1);
     assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '45');
     assert.equal(await alex.locator('#reasoning').isVisible(), false);
@@ -475,7 +560,7 @@ try {
     assert.equal(await alex.locator('#reasoning').textContent(), app.game.question.explanation);
     const revealed = app.game.question.text.replace('...', String(app.game.question.answer));
     assert.equal(await alex.locator('#equation').textContent(), revealed);
-    assert.equal(await host.locator('#host-equation').textContent(), revealed);
+    await assertHostText(revealed);
     if (round === 1) {
       for (const [page, selector, reasoning] of [
         [alex, '#equation', '#reasoning'], [host, '#host-equation', '#host-reasoning'],
@@ -540,7 +625,7 @@ try {
   assert.equal(app.game.phase, 'finished');
   assert.deepEqual(errors, [], 'Browser JavaScript errors');
   assert.deepEqual(externalRequests, [], 'Game assets must be entirely local');
-  console.log(`Browser checks passed: lobby profile editing, multiplayer, solo, stories, patterns, mixed timers, five-second auto-continue/reconnect/skip/results, keypad, scoring, tiebreakers, QR selection, tablet portrait/landscape, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
+  console.log(`Browser checks passed: lobby profile editing, multiplayer, solo, stories, patterns, compare/balance, everyday math, accessible visual puzzles, six-type mixed timers, five-second auto-continue/reconnect/skip/results, keypad, scoring, tiebreakers, QR selection, tablet portrait/landscape, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
 } finally {
   await browser?.close();
   await app.close();

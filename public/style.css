@@ -67,6 +67,17 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .question-type { color: var(--indigo); font-size: 13px; font-weight: 750; }
 .question-card .equation.story, .host-question .equation.story { font-size: 24px; line-height: 1.45; letter-spacing: 0; white-space: normal; text-align: left; margin: 0; }
 .question-card .equation.pattern, .host-question .equation.pattern { white-space: pre-line; text-align: center; line-height: 1.5; }
+.question-card .equation.compare, .host-question .equation.compare { white-space: pre-line; font-size: 21px; line-height: 1.4; }
+.visual-puzzle { margin: 12px 0; }
+.shape-row { display: flex; justify-content: center; gap: 10px; line-height: 1.1; }
+.shape-row span { font-size: 32px; width: 32px; }
+.shape-row [data-shape="circle"] { color: #4f46e5; }
+.shape-row [data-shape="square"] { color: #15803d; }
+.shape-row [data-shape="triangle"] { color: #c2410c; }
+.host-question.visual-card #host-prompt { display: none; }
+.host-question.visual-card .visual-puzzle { margin: 6px 0; }
+.host-question.visual-card .shape-row { line-height: 1; }
+.host-question.story-card.visual-card .reasoning { margin: 4px 0; }
 .reasoning { color: var(--green-dark); font-size: 19px; font-weight: 750; line-height: 1.4; }
 .question-card.story-card { gap: 8px; padding: 16px 24px; }
 .story-card .answer-box { height: 76px; font-size: 45px; }

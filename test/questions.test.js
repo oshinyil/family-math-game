@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { calculationQuestion, DEFAULT_SETTINGS, generateDeck, questionPool, validateSettings } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
 import { patternPool } from '../lib/patterns.js';
+import { comparePool, everydayQuestion, visualPool } from '../lib/rounds.js';
 import { allowedRequest, isLoopback, isPrivate } from '../lib/network.js';
 
 test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rules', () => {
@@ -339,15 +340,107 @@ test('each pattern rule has next, previous and every interior blank with a clear
   assert.ok(!patternPool(15).some(q => ['doubling', 'halving'].includes(q.rule)));
 });
 
-test('mix includes all three types and mixed-story challenges include both step counts', () => {
+test('mix includes all six types and mixed-story challenges include both step counts', () => {
   for (let i = 0; i < 10; i++) {
     const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'mix', storySteps: 'mixed' });
-    const firstSix = deck.slice(-6);
-    assert.deepEqual([...new Set(firstSix.map(q => q.type))].sort(), ['calculation', 'pattern', 'story']);
-    assert.deepEqual(firstSix.filter(q => q.type === 'story').map(q => q.steps.length).sort(), [1, 2]);
+    const firstTwelve = deck.slice(-12);
+    assert.deepEqual([...new Set(deck.slice(-6).map(q => q.type))].sort(), ['calculation', 'compare', 'everyday', 'pattern', 'story', 'visual']);
+    assert.deepEqual(firstTwelve.filter(q => q.type === 'story').map(q => q.steps.length).sort(), [1, 2]);
   }
 });
 
+test('compare and balance are uniquely solvable, varied and obey selected arithmetic limits', () => {
+  for (const maxNumber of [5, 12, 50, 100]) {
+    for (const op of ['+', '-', '*', '/']) {
+      const settings = { ...DEFAULT_SETTINGS, maxNumber, operations: [op], questionCount: 1, questionType: 'compare' };
+      const bases = questionPool(settings);
+      const { comparisons, balances } = comparePool(bases);
+      assert.deepEqual([...new Set(comparisons.map(q => q.answer))].sort(), [0, 1, 2]);
+      for (const q of comparisons) {
+        const left = q.steps[0].answer;
+        const right = Number(q.text.match(/Right: (\d+)/)[1]);
+        assert.equal(q.answer, left > right ? 1 : left < right ? 2 : 0);
+        assert.match(q.text, /Enter 1 = left, 2 = right, 0 = equal/);
+        assert.ok(q.explanation.includes(`Enter ${q.answer}`));
+      }
+      for (const q of balances) {
+        assert.equal(q.steps[0].answer, q.steps[1].answer);
+        assert.equal(q.answer, q.steps[1].b);
+        assert.ok(q.answer > 0 && q.answer <= maxNumber);
+        assert.equal(q.text.split('...').length, 2, 'Exactly one equation blank');
+        const { a, op, answer } = q.steps[1];
+        assert.equal(op === '+' ? answer - a : op === '-' ? a - answer :
+          op === '*' ? answer / a : a / answer, q.answer);
+      }
+      const deck = generateDeck(settings);
+      assert.equal(new Set(deck.map(q => q.text)).size, deck.length);
+      assert.ok(deck.every(q => q.type === 'compare' && q.steps.every(step => step.op === op)));
+      if (balances.length) assert.deepEqual(deck.slice(-2).map(q => q.kind).sort(), ['balance', 'compare']);
+      for (const q of deck) for (const step of q.steps) {
+        assert.ok(step.a <= maxNumber && step.b <= maxNumber);
+        if (op === '*') assert.ok(step.answer <= maxNumber);
+      }
+    }
+  }
+});
+
+test('all twelve everyday templates bind exact arithmetic, units and bounded operands', () => {
+  for (const maxNumber of [5, 12, 50, 100]) {
+    for (const op of ['+', '-', '*', '/']) {
+      const settings = { ...DEFAULT_SETTINGS, maxNumber, operations: [op], questionType: 'everyday', questionCount: 1 };
+      const bases = questionPool(settings);
+      for (const base of bases) for (let variant = 0; variant < 3; variant++) {
+        const q = everydayQuestion(base, variant);
+        assert.equal(q.answer, op === '+' ? base.a + base.b : op === '-' ? base.a - base.b :
+          op === '*' ? base.a * base.b : base.a / base.b);
+        assert.ok(q.text.includes(String(base.a)) && q.text.includes(String(base.b)));
+        assert.ok(q.text.length <= 240 && q.text.endsWith('?'));
+        assert.ok(Number.isInteger(q.answer) && q.answer >= 0);
+        if (op === '*') assert.ok(q.answer <= maxNumber);
+        assert.ok(q.explanation.includes(`= ${q.answer}`));
+        if (variant === 0) assert.match(q.text, /cents/);
+        if (variant === 1) assert.match(q.text, /minutes/);
+      }
+      const deck = generateDeck(settings);
+      assert.equal(new Set(deck.map(q => q.text)).size, deck.length);
+      assert.deepEqual(deck.slice(-3).map(q => q.kind).sort(), ['money', 'packing', 'time']);
+    }
+  }
+  assert.throws(() => everydayQuestion({ op: '+' }, 3), /valid everyday/);
+});
+
+test('visual representations have bounded counts, distinct arrangements and accurate accessible descriptions', () => {
+  for (const maxNumber of [5, 12, 50, 100]) {
+    const pool = visualPool(maxNumber);
+    const keys = new Set();
+    for (const q of pool) {
+      const shapes = q.visual.rows.flat();
+      assert.ok(shapes.length <= maxNumber && shapes.length <= 24);
+      assert.ok(shapes.every(shape => ['circle', 'square', 'triangle'].includes(shape)));
+      assert.ok(q.visual.rows.every(row => row.length <= 6));
+      assert.ok(q.visual.rows.length <= 4);
+      const target = q.kind === 'total' ? null : q.text.match(/Count only the (\w+)s/)[1];
+      assert.equal(q.answer, target ? shapes.filter(shape => shape === target).length : shapes.length);
+      assert.ok(q.answer > 0 && q.answer <= maxNumber);
+      assert.equal(q.visual.description, q.visual.rows.map((row, i) => `Row ${i + 1}: ${row.join(', ')}.`).join(' '));
+      assert.ok(q.explanation.endsWith(`= ${q.answer}.`));
+      const key = JSON.stringify([q.text, q.visual.rows]);
+      assert.ok(!keys.has(key));
+      keys.add(key);
+    }
+    assert.ok(generateDeck({ ...DEFAULT_SETTINGS, maxNumber, questionCount: 50, questionType: 'visual', operations: [] }).length >= 50);
+  }
+});
+
+test('new category settings validate whole-number timers and allow visual-only games without operations', () => {
+  for (const [key, min] of [['compareSeconds', 5], ['everydaySeconds', 15], ['visualSeconds', 5]]) {
+    for (const value of [min - 1, 181, '60', 25.5]) assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, [key]: value }));
+    for (const value of [min, 180]) assert.equal(validateSettings({ ...DEFAULT_SETTINGS, [key]: value })[key], value);
+  }
+  for (const questionType of ['compare', 'everyday', 'visual']) assert.equal(validateSettings({ ...DEFAULT_SETTINGS, questionType }).questionType, questionType);
+  assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, questionType: 'everyday', operations: [] }));
+  assert.throws(() => validateSettings({ ...DEFAULT_SETTINGS, questionType: 'compare', operations: [] }));
+});
 test('network policy permits only loopback/private IPv4 and same-origin browser requests', () => {
   for (const address of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) assert.ok(isLoopback(address));
   for (const address of ['10.0.1.2', '172.16.0.1', '172.31.255.1', '192.168.1.20']) assert.ok(isPrivate(address));

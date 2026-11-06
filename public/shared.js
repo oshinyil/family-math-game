@@ -23,9 +23,39 @@ export function renderQuestion(state, questionElement, labelElement, reasoningEl
   }
   questionElement.classList.toggle('story', written);
   questionElement.classList.toggle('pattern', pattern);
+  questionElement.classList.toggle('compare', state.question.type === 'compare');
   questionElement.classList.toggle('long', !written && questionElement.textContent.length > 11);
   questionElement.closest('.card').classList.toggle('story-card', written);
-  labelElement.textContent = pattern ? '🧩 Number pattern' : written ? '📖 Story' : '🔢 Find the missing number';
+  questionElement.closest('.card').classList.toggle('visual-card', state.question.type === 'visual');
+  labelElement.textContent = {
+    calculation: '🔢 Find the missing number', story: '📖 Story', pattern: '🧩 Number pattern',
+    compare: 'Compare and balance', everyday: 'Everyday math', visual: 'Visual puzzle',
+  }[state.question.type];
+  let visualElement = questionElement.nextElementSibling;
+  if (!visualElement?.classList.contains('visual-puzzle')) {
+    visualElement = document.createElement('div');
+    visualElement.className = 'visual-puzzle';
+    questionElement.after(visualElement);
+  }
+  visualElement.hidden = state.question.type !== 'visual';
+  visualElement.replaceChildren();
+  if (!visualElement.hidden) {
+    visualElement.setAttribute('role', 'img');
+    visualElement.setAttribute('aria-label', state.question.visual.description);
+    const shapes = { circle: '●', square: '■', triangle: '▲' };
+    for (const row of state.question.visual.rows) {
+      const rowElement = document.createElement('div');
+      rowElement.className = 'shape-row';
+      rowElement.setAttribute('aria-hidden', 'true');
+      for (const shape of row) {
+        const item = document.createElement('span');
+        item.dataset.shape = shape;
+        item.textContent = shapes[shape];
+        rowElement.append(item);
+      }
+      visualElement.append(rowElement);
+    }
+  }
   reasoningElement.hidden = !written || !reveal;
   reasoningElement.textContent = written && reveal ? state.question.explanation : '';
 }
