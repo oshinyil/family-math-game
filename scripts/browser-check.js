@@ -136,7 +136,7 @@ try {
     element.classList.add('long');
   });
   await fits(alex);
-  assert.equal(await alex.locator('#equation').evaluate(element => element.scrollWidth <= element.parentElement.clientWidth - 48), true, 'Largest multiplication reveal must fit its card');
+  assert.equal(await alex.locator('#equation').evaluate(element => element.scrollWidth <= element.clientWidth), true, 'Largest multiplication reveal must fit its card');
   await alex.locator('#equation').evaluate((element, text) => {
     element.textContent = text;
     element.classList.toggle('long', text.length > 11);
@@ -277,6 +277,8 @@ try {
   await screenshot(host, 'story-host-setup.png', true);
   await alex.setViewportSize({ width: 1366, height: 657 });
   await host.locator('#start').click();
+  await alex.locator('#question-type').filter({ hasText: 'Story' }).waitFor();
+  await host.locator('#host-type').filter({ hasText: 'Story' }).waitFor();
   const storyStepCounts = [];
   const storyFixtures = [];
   for (const base of [
@@ -290,6 +292,70 @@ try {
             values.at(-1) : values.reduce((a, b) => a.length >= b.length ? a : b)));
       }
     }
+  }
+  const tabletViewports = [
+    { width: 768, height: 1024 }, { width: 1024, height: 768 },
+    { width: 820, height: 1180 }, { width: 1180, height: 820 },
+    { width: 800, height: 600 }, { width: 600, height: 800 },
+    { width: 1024, height: 600 }, { width: 360, height: 740 },
+    { width: 390, height: 844 }, { width: 1366, height: 657 },
+  ];
+  async function checkStoryControls() {
+    const originalText = await alex.locator('#equation').textContent();
+    const originalReasoning = await alex.locator('#reasoning').textContent();
+    const longestStories = [...storyFixtures].sort((a, b) => b.text.length - a.text.length).slice(0, 4);
+    for (const viewport of tabletViewports) {
+      await alex.setViewportSize(viewport);
+      for (const fixture of longestStories) {
+        await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, fixture.text);
+        await alex.locator('#reasoning').evaluate((element, text) => { element.textContent = text; }, fixture.explanation);
+        const context = `${viewport.width}x${viewport.height}: ${fixture.text}`;
+        await fits(alex, context);
+        const keys = await alex.locator('#keypad').evaluate(element => [...element.querySelectorAll('button')].map(button => {
+          const { x, y, width, height } = button.getBoundingClientRect();
+          return { x, y, width, height };
+        }));
+        for (const box of keys) {
+          assert.ok(box.y >= 0 && box.y + box.height <= viewport.height &&
+            box.x >= 0 && box.x + box.width <= viewport.width, `Every answer key must be in view: ${context}`);
+          assert.ok(box.width >= 44 && box.height >= 44, `Touch targets must remain usable: ${context}`);
+        }
+        const content = alex.getByRole('region', { name: 'Question and solution' });
+        assert.equal(await content.getAttribute('tabindex'), '0', 'Scrollable stories must be keyboard accessible');
+        assert.equal(await alex.locator('#equation').textContent(), fixture.text, 'The entire story must be preserved');
+        assert.ok(await content.evaluate(element => element.clientHeight >= 80), `Story panel needs readable space: ${context}`);
+        assert.equal(await content.evaluate(element => element.scrollWidth <= element.clientWidth), true, `Stories must wrap: ${context}`);
+        await content.evaluate(element => { element.scrollTop = element.scrollHeight; });
+        const endVisible = await content.evaluate(element => {
+          const last = [...element.children].filter(child => !child.hidden).at(-1);
+          return last.getBoundingClientRect().bottom <= element.getBoundingClientRect().bottom + 1;
+        });
+        assert.equal(endVisible, true, `The end of the story/solution must be reachable: ${context}`);
+        await content.evaluate(element => { element.scrollTop = 0; });
+        if (await content.evaluate(element => element.scrollHeight > element.clientHeight)) {
+          await content.focus();
+          await alex.keyboard.press('PageDown');
+          await alex.waitForFunction(() => document.querySelector('.question-content').scrollTop > 0);
+          await content.evaluate(element => { element.scrollTop = 0; });
+        }
+        assert.equal(await alex.locator('[data-key="submit"]').evaluate(element => {
+          const box = element.getBoundingClientRect();
+          return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+        }), true, `Submit must not be covered by another panel: ${context}`);
+      }
+      if (viewport.width === 768 || viewport.width === 1024 || viewport.width === 390) {
+        await screenshot(alex, `tablet-story-${viewport.width}x${viewport.height}-${app.game.phase}.png`);
+      }
+      if (app.game.phase === 'question') {
+        await alex.locator('[data-key="7"]').click();
+        assert.equal(await alex.locator('#answer-display').textContent(), '7');
+        await alex.locator('[data-key="back"]').click();
+        assert.equal(await alex.locator('#answer-display').textContent(), '?');
+      }
+    }
+    await alex.setViewportSize({ width: 1366, height: 657 });
+    await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, originalText);
+    await alex.locator('#reasoning').evaluate((element, text) => { element.textContent = text; }, originalReasoning);
   }
   for (let round = 1; round <= 2; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
@@ -308,6 +374,7 @@ try {
     await fits(alex);
     await fits(host);
     if (round === 1) {
+      await checkStoryControls();
       const originalText = app.game.question.text;
       for (const fixture of storyFixtures) {
         for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
@@ -329,6 +396,7 @@ try {
     assert.equal(await host.locator('#host-reasoning').textContent(), app.game.question.explanation);
     await fits(alex);
     await fits(host);
+    if (round === 1) await checkStoryControls();
     const originalText = app.game.question.text;
     for (const [page, selector, reasoning] of [
       [alex, '#equation', '#reasoning'], [host, '#host-equation', '#host-reasoning'],
@@ -472,7 +540,7 @@ try {
   assert.equal(app.game.phase, 'finished');
   assert.deepEqual(errors, [], 'Browser JavaScript errors');
   assert.deepEqual(externalRequests, [], 'Game assets must be entirely local');
-  console.log(`Browser checks passed: lobby profile editing, multiplayer, solo, stories, patterns, mixed timers, five-second auto-continue/reconnect/skip/results, keypad, scoring, tiebreakers, QR selection, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
+  console.log(`Browser checks passed: lobby profile editing, multiplayer, solo, stories, patterns, mixed timers, five-second auto-continue/reconnect/skip/results, keypad, scoring, tiebreakers, QR selection, tablet portrait/landscape, 1366x657 and narrow layouts.\nScreenshots: ${output}`);
 } finally {
   await browser?.close();
   await app.close();

@@ -54,6 +54,7 @@ connection(socket, async () => {
     } else {
       token = null;
       state = null;
+      document.body.classList.remove('playing');
       $('join-screen').hidden = false;
       for (const id of ['waiting-screen', 'play-screen', 'final-screen']) $(id).hidden = true;
     }
@@ -72,6 +73,7 @@ socket.on('state', next => {
     showError('');
   }
   render();
+  if (changedQuestion) document.querySelector('.question-content').scrollTop = 0;
 });
 socket.on('disconnect', () => renderAnswer());
 socket.connect();
@@ -133,6 +135,7 @@ function render() {
   $('profile-submit').textContent = editing ? 'Save changes ✓' : 'Let’s play →';
   $('profile-cancel').hidden = !editing;
   $('play-screen').hidden = !['question', 'reveal'].includes(state.phase);
+  document.body.classList.toggle('playing', !$('play-screen').hidden);
   $('final-screen').hidden = state.phase !== 'finished';
   const me = state.players.find(p => p.id === state.playerId);
   $('identity').textContent = `${avatars[me.avatar]} ${me.name} · ⭐ ${me.score}`;

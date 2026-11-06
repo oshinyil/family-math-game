@@ -94,6 +94,9 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
    Calculations rotate between a missing result, left operand and right operand:
    fill the **`...`**, for example `... + 10 = 14` or `5 + ... = 12`.
    The reveal shows the completed equation. Stories keep their usual wording.
+   On tablets and smaller screens, the number pad and Submit stay on screen.
+   Long questions and solutions scroll inside their own panel without moving
+   the answer controls; swipe there or focus the panel and use the arrow keys.
 3. Submit locks and hides the answer. If time runs out first, the last answer
    **received by the server** still counts, even without Submit. When everyone
    connected has submitted, the answer is revealed early. If a connection drops,

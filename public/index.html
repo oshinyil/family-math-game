@@ -38,8 +38,10 @@
             <div class="timer-text"><span id="timer-caption">Thinking time</span><strong id="seconds"></strong></div>
           </div>
           <div id="question-type" class="question-type"></div>
-          <div id="equation" class="equation"></div>
-          <div id="reasoning" class="reasoning" hidden></div>
+          <div class="question-content" tabindex="0" role="region" aria-label="Question and solution">
+            <div id="equation" class="equation"></div>
+            <div id="reasoning" class="reasoning" hidden></div>
+          </div>
           <div id="answer-box" class="answer-box" role="status" aria-live="polite" aria-label="Your answer"><span id="answer-display">?</span></div>
           <div id="feedback" class="feedback" aria-live="polite"></div>
           <p id="answer-hint" class="muted">Tap the numbers, then lock it in.</p>
