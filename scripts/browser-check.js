@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 import { createApp } from '../server.js';
 import { joinUrls } from '../lib/network.js';
 import { DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
+import { storyQuestion } from '../lib/stories.js';
 
 const output = path.resolve(process.env.SCREENSHOT_DIR ?? 'artifacts');
 await mkdir(output, { recursive: true });
@@ -246,8 +247,19 @@ try {
   await alex.setViewportSize({ width: 1366, height: 657 });
   await host.locator('#start').click();
   const storyStepCounts = [];
-  const longestStory = generateDeck({ ...DEFAULT_SETTINGS, maxNumber: 100, questionType: 'stories', storySteps: 'mixed' })
-    .reduce((a, b) => a.text.length > b.text.length ? a : b);
+  const storyFixtures = [];
+  for (const base of [
+    { a: 49, b: 50, op: '+', answer: 99 }, { a: 100, b: 2, op: '-', answer: 98 },
+    { a: 2, b: 2, op: '*', answer: 4 }, { a: 100, b: 2, op: '/', answer: 50 },
+  ]) {
+    for (const twoStep of [false, true]) {
+      for (let index = 0; index < (twoStep ? 8 : 12); index++) {
+        storyFixtures.push(storyQuestion(base, 100, twoStep, values =>
+          typeof values[0] === 'function' ? values[index] : typeof values[0] === 'number' ?
+            values.at(-1) : values.reduce((a, b) => a.length >= b.length ? a : b)));
+      }
+    }
+  }
   for (let round = 1; round <= 2; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     assert.equal(app.game.question.type, 'story');
@@ -266,9 +278,14 @@ try {
     await fits(host);
     if (round === 1) {
       const originalText = app.game.question.text;
-      await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, longestStory.text);
-      await fits(alex);
+      for (const fixture of storyFixtures) {
+        for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
+          await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, fixture.text);
+          await fits(page);
+        }
+      }
       await alex.locator('#equation').evaluate((element, text) => { element.textContent = text; }, originalText);
+      await host.locator('#host-equation').evaluate((element, text) => { element.textContent = text; }, originalText);
       await screenshot(alex, 'player-story-question.png');
       await alex.reload();
       await alex.locator('#question-type').filter({ hasText: 'Story' }).waitFor();
@@ -282,10 +299,16 @@ try {
     await fits(alex);
     await fits(host);
     const originalText = app.game.question.text;
-    for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
-      await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, longestStory.text);
-      await fits(page);
+    for (const [page, selector, reasoning] of [
+      [alex, '#equation', '#reasoning'], [host, '#host-equation', '#host-reasoning'],
+    ]) {
+      for (const fixture of storyFixtures) {
+        await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, fixture.text);
+        await page.locator(reasoning).evaluate((element, text) => { element.textContent = text; }, fixture.explanation);
+        await fits(page, fixture.text);
+      }
       await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, originalText);
+      await page.locator(reasoning).evaluate((element, text) => { element.textContent = text; }, app.game.question.explanation);
     }
     if (round === 2) await screenshot(alex, 'player-story-reveal.png');
     await host.locator('#next').click();
@@ -397,13 +420,13 @@ async function tap(page, digits) {
   for (const digit of digits) await page.locator(`[data-key="${digit}"]`).click();
 }
 
-async function fits(page) {
+async function fits(page, context = '') {
   const dimensions = await page.evaluate(() => ({
     width: innerWidth, height: innerHeight,
     scrollWidth: document.documentElement.scrollWidth, scrollHeight: document.documentElement.scrollHeight,
   }));
   assert.ok(dimensions.scrollWidth <= dimensions.width, JSON.stringify(dimensions));
-  assert.ok(dimensions.scrollHeight <= dimensions.height, `Screen must fit laptop viewport (${page.url()}): ${JSON.stringify(dimensions)}`);
+  assert.ok(dimensions.scrollHeight <= dimensions.height, `Screen must fit laptop viewport (${page.url()}): ${JSON.stringify(dimensions)} ${context}`);
 }
 
 async function screenshot(page, filename, fullPage = false) {

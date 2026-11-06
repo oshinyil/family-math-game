@@ -111,7 +111,10 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 Questions are randomly generated on the server, not from a fixed bank. Stories
 combine randomized numbers, names, items, places, and templates; no AI or
 internet is involved. Both players always get the same story and time limit.
-Stories practise collecting, giving away, grouping, and equal sharing.
+Stories have **80 scenario templates** (12 one-step and 8 two-step per operation),
+with 16 names, 16 objects and 12 settings to vary the details. They explore
+picnics, baking, bus journeys, libraries, gardens, aquariums, space stations,
+music, games and more, practising collecting, comparing, grouping and equal sharing.
 Two-step stories chain two selected operations of the same kind (collect twice,
 give away twice, groups within groups, or share twice). Each step obeys the
 selected number limit and whole-number rules; a narrow range may only support

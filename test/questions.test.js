@@ -154,6 +154,72 @@ test('story questions obey each operation and chain safe whole-number steps with
   }
 });
 
+test('all 80 story scenarios bind the right numbers to safe steps and fit the text budget', () => {
+  const bases = {
+    '+': [{ a: 100, b: 100, op: '+', answer: 200 }, { a: 49, b: 50, op: '+', answer: 99 }],
+    '-': [{ a: 100, b: 99, op: '-', answer: 1 }, { a: 100, b: 2, op: '-', answer: 98 }],
+    '*': [{ a: 10, b: 10, op: '*', answer: 100 }, { a: 2, b: 2, op: '*', answer: 4 }],
+    '/': [{ a: 100, b: 2, op: '/', answer: 50 }, { a: 100, b: 2, op: '/', answer: 50 }],
+  };
+  const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+  for (const op of ['+', '-', '*', '/']) {
+    for (const twoStep of [false, true]) {
+      const count = twoStep ? 8 : 12;
+      const texts = new Set();
+      for (let index = 0; index < count; index++) {
+        const q = storyQuestion(bases[op][Number(twoStep)], 100, twoStep, values => {
+          if (typeof values[0] === 'function') {
+            assert.equal(values.length, count);
+            return values[index];
+          }
+          if (typeof values[0] === 'number') return values.at(-1);
+          return values.reduce((a, b) => a.length >= b.length ? a : b);
+        });
+        assert.ok(q);
+        assert.ok(q.text.endsWith('?'));
+        assert.ok(q.text.length <= 240, q.text);
+        assert.ok(!texts.has(q.text));
+        texts.add(q.text);
+        const inputs = [q.a, q.b, ...q.steps.slice(1).map(step => step.b)];
+        assert.deepEqual(q.text.match(/\d+/g).map(Number).sort((a, b) => a - b),
+          inputs.sort((a, b) => a - b), q.text);
+        assert.equal(q.steps.length, twoStep ? 2 : 1);
+        for (const step of q.steps) {
+          const expected = op === '+' ? step.a + step.b : op === '-' ? step.a - step.b :
+            op === '*' ? step.a * step.b : step.a / step.b;
+          assert.equal(step.answer, expected);
+          assert.ok(Number.isInteger(expected) && expected >= 0);
+          assert.ok(step.a <= 100 && step.b <= 100);
+          if (op === '*') assert.ok(expected <= 100);
+        }
+        assert.equal(q.answer, q.steps.at(-1).answer);
+        assert.equal(q.explanation, q.steps.map(step =>
+          `${step.a} ${symbols[op]} ${step.b} = ${step.answer}`).join('; '));
+      }
+      assert.equal(texts.size, count);
+    }
+  }
+});
+
+test('story names, objects and places give 3072 distinct combinations for one scenario', () => {
+  const texts = new Set();
+  const base = { a: 6, b: 4, op: '+', answer: 10 };
+  for (let name = 0; name < 16; name++) {
+    for (let item = 0; item < 16; item++) {
+      for (let place = 0; place < 12; place++) {
+        const indices = [name, item, place, 1];
+        let call = 0;
+        const q = storyQuestion(base, 12, false, values => values[indices[call++]]);
+        assert.ok(!texts.has(q.text), q.text);
+        texts.add(q.text);
+        assert.equal(q.answer, 10);
+        assert.equal(q.explanation, '6 + 4 = 10');
+      }
+    }
+  }
+  assert.equal(texts.size, 3072);
+});
+
 test('patterns cover next, previous and missing numbers with bounded consistent steps and no repeats', () => {
   for (const maxNumber of [5, 12, 100]) {
     const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber, questionCount: 1 });
