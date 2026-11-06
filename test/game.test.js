@@ -275,11 +275,12 @@ test('pattern players share the question, preserve their timer on reconnect and 
   assert.equal((await send(f.host, 'start', { ...settings, questionType: 'patterns', patternSeconds: 45 })).ok, true);
   await ready(f);
   assert.equal(f.a.state.question.type, 'pattern');
+  assert.equal(f.a.state.question.text.split('\n')[1].split(', ').filter(n => n === '...').length, 1);
   assert.deepEqual(f.a.state.question, f.b.state.question);
   assert.equal(f.a.state.durationMs, 45000);
   assert.equal(f.a.state.deadline - f.game.startedAt, 45000);
   for (const socket of [f.a, f.b, f.host]) {
-    for (const privateKey of ['answer', 'sequence', 'missingIndex', 'explanation']) {
+    for (const privateKey of ['answer', 'sequence', 'missingIndex', 'explanation', 'jumps', 'rule']) {
       assert.equal(privateKey in socket.state.question, false);
     }
   }

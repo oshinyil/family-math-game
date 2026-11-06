@@ -6,6 +6,7 @@ import { createApp } from '../server.js';
 import { joinUrls } from '../lib/network.js';
 import { DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
+import { patternPool } from '../lib/patterns.js';
 
 const output = path.resolve(process.env.SCREENSHOT_DIR ?? 'artifacts');
 await mkdir(output, { recursive: true });
@@ -336,23 +337,36 @@ try {
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
   await host.locator('#question-type').selectOption('patterns');
+  await host.locator('#question-count').fill('6');
   await alex.locator('#edit-profile').click();
   await screenshot(host, 'pattern-host-setup.png', true);
   await host.locator('#start').click();
   await alex.locator('#play-screen').waitFor();
   assert.equal(await alex.locator('#join-screen').isVisible(), false, 'Starting a game must close the profile editor');
   const patternKinds = [];
-  for (let round = 1; round <= 3; round++) {
+  const patternRules = [];
+  const patternFixtures = [...new Map(patternPool(100).map(q =>
+    [`${q.rule}-${q.kind}`, q])).values()];
+  for (let round = 1; round <= 6; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     patternKinds.push(app.game.question.kind);
+    patternRules.push(app.game.question.rule);
     assert.equal(await alex.locator('#question-type').textContent(), '🧩 Number pattern');
     assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
     assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
+    assert.equal(app.game.question.text.split('\n')[1].split(', ').filter(n => n === '...').length, 1);
     assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '45');
     assert.equal(await alex.locator('#reasoning').isVisible(), false);
     await fits(alex);
     await fits(host);
     if (round === 1) {
+      for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
+        for (const fixture of patternFixtures) {
+          await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, fixture.text);
+          await fits(page, fixture.text);
+        }
+        await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, app.game.question.text);
+      }
       await screenshot(alex, 'player-pattern-question.png');
       await alex.reload();
       await alex.locator('#question-type').filter({ hasText: 'Number pattern' }).waitFor();
@@ -361,12 +375,30 @@ try {
     await alex.locator('[data-key="submit"]').click();
     await alex.locator('#reasoning').waitFor();
     assert.equal(await alex.locator('#reasoning').textContent(), app.game.question.explanation);
+    const revealed = app.game.question.text.replace('...', String(app.game.question.answer));
+    assert.equal(await alex.locator('#equation').textContent(), revealed);
+    assert.equal(await host.locator('#host-equation').textContent(), revealed);
+    if (round === 1) {
+      for (const [page, selector, reasoning] of [
+        [alex, '#equation', '#reasoning'], [host, '#host-equation', '#host-reasoning'],
+      ]) {
+        for (const fixture of patternFixtures) {
+          await page.locator(selector).evaluate((element, text) => { element.textContent = text; },
+            fixture.text.replace('...', String(fixture.answer)));
+          await page.locator(reasoning).evaluate((element, text) => { element.textContent = text; }, fixture.explanation);
+          await fits(page, fixture.text);
+        }
+        await page.locator(selector).evaluate((element, text) => { element.textContent = text; }, revealed);
+        await page.locator(reasoning).evaluate((element, text) => { element.textContent = text; }, app.game.question.explanation);
+      }
+    }
     await fits(alex);
     await fits(host);
-    if (round === 3) await screenshot(alex, 'player-pattern-reveal.png');
+    if (round === 6) await screenshot(alex, 'player-pattern-reveal.png');
     await host.locator('#next').click();
   }
-  assert.deepEqual(patternKinds, ['next', 'previous', 'missing']);
+  assert.deepEqual(patternKinds, ['next', 'previous', 'missing', 'next', 'previous', 'missing']);
+  assert.equal(new Set(patternRules).size, 6);
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
   await host.locator('#auto-continue').check();

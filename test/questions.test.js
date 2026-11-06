@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_SETTINGS, generateDeck, questionPool, validateSettings } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
+import { patternPool } from '../lib/patterns.js';
 import { allowedRequest, isLoopback, isPrivate } from '../lib/network.js';
 
 test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rules', () => {
@@ -225,26 +226,77 @@ test('patterns cover next, previous and missing numbers with bounded consistent 
     const deck = generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber, questionCount: 1 });
     const prompts = new Set();
     assert.deepEqual(deck.slice(-3).map(q => q.kind).sort(), ['missing', 'next', 'previous']);
-    assert.deepEqual([...new Set(deck.map(q => Math.sign(q.step)))].sort(), [-1, 1]);
+    assert.deepEqual([...new Set(deck.filter(q => q.rule === 'constant').map(q => Math.sign(q.step)))].sort(), [-1, 1]);
+    if (maxNumber >= 16) {
+      assert.equal(new Set(deck.slice(-6).map(q => q.rule)).size, 6);
+    }
     for (const q of deck) {
       assert.equal(q.type, 'pattern');
       assert.ok(!prompts.has(q.text));
       prompts.add(q.text);
       assert.equal(q.sequence.length, 5);
       assert.ok(q.sequence.every(n => Number.isInteger(n) && n >= 0 && n <= maxNumber));
-      assert.ok(q.sequence.slice(1).every((n, i) => n - q.sequence[i] === q.step));
+      if (q.rule === 'constant') {
+        assert.ok(q.sequence.slice(1).every((n, i) => n - q.sequence[i] === q.step));
+        assert.ok(q.explanation.includes(`by ${Math.abs(q.step)}`));
+      } else if (q.rule === 'doubling') {
+        assert.ok(q.sequence.slice(1).every((n, i) => n === q.sequence[i] * 2));
+      } else if (q.rule === 'halving') {
+        assert.ok(q.sequence.slice(1).every((n, i) => n === q.sequence[i] / 2));
+      } else if (q.rule === 'repeating') {
+        assert.notEqual(q.sequence[0], q.sequence[1]);
+        assert.ok(q.sequence.every((n, i) => n === q.sequence[i % 2]));
+      } else {
+        assert.ok(q.sequence.slice(1).every((n, i) => n - q.sequence[i] === q.jumps[i]));
+        if (q.rule === 'alternating') {
+          assert.equal(q.jumps[0], q.jumps[2]);
+          assert.equal(q.jumps[1], q.jumps[3]);
+          assert.equal(q.jumps[1], q.jumps[0] * 2);
+        } else {
+          assert.equal(q.rule, 'growing');
+          assert.ok(q.jumps.slice(1).every((n, i) => Math.abs(n) === Math.abs(q.jumps[i]) + 1));
+        }
+      }
       assert.equal(q.answer, q.sequence[q.missingIndex]);
       assert.equal(q.kind, q.missingIndex === 0 ? 'previous' : q.missingIndex === 4 ? 'next' : 'missing');
       const displayed = q.text.split('\n')[1].split(', ');
-      assert.equal(displayed[q.missingIndex], '?');
-      assert.equal(displayed.filter(n => n === '?').length, 1);
+      assert.equal(displayed[q.missingIndex], '...');
+      assert.equal(displayed.filter(n => n === '...').length, 1);
+      assert.equal(q.text.includes('?'), true, 'The question sentence is still a question');
       assert.ok(displayed.every((n, i) => i === q.missingIndex || Number(n) === q.sequence[i]));
       assert.ok(q.explanation.includes(q.sequence.join(', ')));
-      assert.ok(q.explanation.includes(`by ${Math.abs(q.step)}`));
+      assert.ok(!q.explanation.includes('...'));
     }
   }
-  assert.throws(() => generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber: 5, questionCount: 50 }), /Only .* different questions/);
+  assert.ok(generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', maxNumber: 5, questionCount: 50 }).length >= 50);
   assert.ok(generateDeck({ ...DEFAULT_SETTINGS, questionType: 'patterns', operations: [] }).every(q => q.type === 'pattern'));
+});
+
+test('each pattern rule has next, previous and every interior blank with a clear rule hint', () => {
+  const fixtures = [
+    ['constant', [0, 2, 4, 6, 8], '', 'Count up by 2'],
+    ['doubling', [1, 2, 4, 8, 16], 'Double each time.', 'Multiply by 2 each time'],
+    ['halving', [16, 8, 4, 2, 1], 'Halve each time.', 'Divide by 2 each time'],
+    ['alternating', [0, 1, 3, 4, 6], 'Add 1, then 2; repeat.', 'Add 1, then 2, alternating'],
+    ['alternating', [6, 5, 3, 2, 0], 'Subtract 1, then 2; repeat.', 'Subtract 1, then 2, alternating'],
+    ['growing', [0, 1, 3, 6, 10], 'Add 1, 2, 3, 4 in order.', 'Add bigger jumps: 1, 2, 3, 4'],
+    ['growing', [10, 9, 7, 4, 0], 'Subtract 1, 2, 3, 4 in order.', 'Subtract bigger jumps: 1, 2, 3, 4'],
+    ['repeating', [1, 3, 1, 3, 1], 'Repeat the two numbers.', 'Repeat the same pair of numbers'],
+  ];
+  const pool = patternPool(16);
+  for (const [rule, sequence, hint, explanation] of fixtures) {
+    const questions = pool.filter(q => q.rule === rule &&
+      q.sequence.every((number, i) => number === sequence[i]));
+    assert.equal(questions.length, 5);
+    assert.deepEqual(questions.map(q => q.kind), ['previous', 'missing', 'missing', 'missing', 'next']);
+    for (const q of questions) {
+      assert.equal(q.answer, sequence[q.missingIndex]);
+      assert.equal(q.text.split('\n')[1], sequence.map((n, i) => i === q.missingIndex ? '...' : n).join(', '));
+      assert.ok(q.text.split('\n')[0].endsWith(hint));
+      assert.equal(q.explanation, `${explanation}: ${sequence.join(', ')}.`);
+    }
+  }
+  assert.ok(!patternPool(15).some(q => ['doubling', 'halving'].includes(q.rule)));
 });
 
 test('mix includes all three types and mixed-story challenges include both step counts', () => {

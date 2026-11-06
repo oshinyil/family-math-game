@@ -139,13 +139,17 @@ If a selected range has too few unique questions, the host receives a clear
 error. Tiebreakers draw unused questions until that pool is exhausted.
 
 **Number patterns** ask for the next number, the number before the first shown,
-or a missing number inside a sequence. Generated sequences count up or down by
-a constant step (including counting by ones, twos, threes, and larger steps
-when the number range permits). All five sequence numbers and the answer are
+or a missing number inside a sequence. The hidden entry is shown as **`...`**.
+Generated rules include constant-step counting up/down, doubling, halving,
+alternating small/big jumps, growing jumps, and repeating pairs of numbers.
+New rule types include a short rule hint so the intended answer is clear,
+not a guessing game. Doubling and halving need a limit of at least 16;
+smaller limits use whichever rules fit. All five sequence numbers and the answer are
 whole numbers from zero to the chosen largest number. The selected arithmetic
 operations do not restrict pattern questions. Pattern rounds rotate through
 next, previous, and missing formats, with randomized sequences and no repeated
-prompt in a game. On reveal, the counting rule and complete sequence appear.
+prompt in a game. Rule types rotate too, rather than letting one type dominate.
+On reveal, the ellipsis becomes the answer and the rule and complete sequence appear.
 Small ranges have fewer unique patterns; increase the range or reduce the
 question count if the host reports too few questions.
 

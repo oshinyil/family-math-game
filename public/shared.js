@@ -19,6 +19,9 @@ export function renderQuestion(state, questionElement, labelElement, reasoningEl
   const reveal = state.phase === 'reveal';
   questionElement.textContent = written ? state.question.text :
     `${equation(state.question)} = ${reveal ? state.question.answer : '?'}`;
+  if (pattern && reveal) {
+    questionElement.textContent = state.question.text.replace('...', String(state.question.answer));
+  }
   questionElement.classList.toggle('story', written);
   questionElement.classList.toggle('pattern', pattern);
   questionElement.classList.toggle('long', !written && questionElement.textContent.length > 11);

@@ -64,7 +64,7 @@ input:not([type="checkbox"]) { width: 100%; padding: 13px 15px; border: 2px soli
 .question-card .equation.long, .host-question .equation.long { font-size: clamp(28px, 4.4vw, 60px); }
 .question-type { color: var(--indigo); font-size: 13px; font-weight: 750; }
 .question-card .equation.story, .host-question .equation.story { font-size: 24px; line-height: 1.45; letter-spacing: 0; white-space: normal; text-align: left; margin: 0; }
-.question-card .equation.pattern, .host-question .equation.pattern { white-space: pre-line; text-align: center; line-height: 1.7; }
+.question-card .equation.pattern, .host-question .equation.pattern { white-space: pre-line; text-align: center; line-height: 1.5; }
 .reasoning { color: var(--green-dark); font-size: 19px; font-weight: 750; line-height: 1.4; }
 .question-card.story-card { gap: 8px; padding: 16px 24px; }
 .story-card .answer-box { height: 76px; font-size: 45px; }
