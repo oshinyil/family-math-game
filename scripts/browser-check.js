@@ -107,7 +107,7 @@ try {
   assert.equal(await alex.locator('#play-screen input').count(), 0, 'Answers must not use a text input');
   const originalEquation = await alex.locator('#equation').textContent();
   await alex.locator('#equation').evaluate(element => {
-    element.textContent = '100 × 99 = 9900';
+    element.textContent = '25 × 4 = 100';
     element.classList.add('long');
   });
   await fits(alex);
@@ -218,10 +218,29 @@ try {
   assert.equal(app.game.snapshot().players[0].score, 0);
   await host.locator('#end-game').click();
   await host.locator('#host-lobby').waitFor();
+  await alex.setViewportSize({ width: 1366, height: 657 });
+  await host.locator('#max-number').fill('50');
+  for (const op of ['+', '-', '/']) await host.locator(`input[name="op"][value="${op}"]`).uncheck();
+  await host.locator('#question-count').fill('2');
+  assert.match(await host.locator('#number-limit-help').textContent(), /caps each multiplication result/);
+  await host.locator('#start').click();
+  assert.ok(app.game.deck.every(q => q.op === '*' && q.answer <= 50));
+  for (let round = 1; round <= 2; round++) {
+    await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
+    assert.equal(app.game.question.op, '*');
+    assert.ok(app.game.question.answer <= 50);
+    await fits(alex);
+    await tap(alex, String(app.game.question.answer));
+    await alex.locator('[data-key="submit"]').click();
+    await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
+    await host.locator('#next').click();
+  }
+  await host.locator('#host-final').waitFor();
+  await host.locator('#new-game').click();
   await host.locator('#question-type').selectOption('stories');
   await host.locator('#story-steps').selectOption('mixed');
   await host.locator('#question-count').fill('2');
-  await host.locator('#max-number').fill('100');
+  await host.locator('#max-number').fill('50');
   await host.locator('#story-seconds').fill('75');
   await screenshot(host, 'story-host-setup.png', true);
   await alex.setViewportSize({ width: 1366, height: 657 });
@@ -232,6 +251,8 @@ try {
   for (let round = 1; round <= 2; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     assert.equal(app.game.question.type, 'story');
+    assert.equal(app.game.question.op, '*');
+    assert.ok(app.game.question.steps.every(step => step.answer <= 50));
     storyStepCounts.push(app.game.question.steps.length);
     assert.equal(app.game.durationMs, 75000);
     assert.equal(await alex.locator('#timer').getAttribute('aria-valuemax'), '75');
@@ -272,6 +293,7 @@ try {
   assert.deepEqual(storyStepCounts, [1, 2]);
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
+  for (const op of ['+', '-', '/']) await host.locator(`input[name="op"][value="${op}"]`).check();
   await host.locator('#question-type').selectOption('mix');
   await host.locator('#question-count').fill('3');
   await host.locator('#pattern-seconds').fill('45');

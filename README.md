@@ -69,8 +69,11 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 
 ## How to play
 
-1. Pick **Calculations**, **Stories**, **Patterns**, or **Mix (all three)**, then the operations, largest
-   number (5-100), and number of questions (1-50). Set calculation time (5-120
+1. Pick **Calculations**, **Stories**, **Patterns**, or **Mix (all three)**, then the operations,
+   **Max number** (5-100), and number of questions (1-50). For multiplication,
+   this caps the **result**: at 50, 6 × 8 = 48 is allowed, but 48 × 49 = 2352
+   is not. For addition, subtraction and division, it caps the operands instead;
+   for patterns, it caps every sequence number. Set calculation time (5-120
    seconds, default **30**) and story time (15-180 seconds, default **60**)
    separately. Patterns have their own time setting (5-180 seconds, default
    **30**). Stories can be **one-step only** or **one- and two-step**.
@@ -123,7 +126,12 @@ Addition
 and multiplication do not repeat with reversed operands. Subtraction is
 non-negative; division is exact with divisors and quotients at least two.
 There is no adding zero or multiplying by zero or one. Both operands are within
-the chosen number limit; multiplication answers can be larger (up to 9999).
+the chosen number limit. **Multiplication results also stay within that limit**,
+in calculations and in every step of one- and two-step stories (including the
+final answer). Addition, subtraction and division keep their operand limits:
+for example, at 50, 48 + 49 = 97, 49 - 48 = 1 and 48 ÷ 2 = 24 are allowed.
+Two-step addition stories may have a final answer above the limit, but each
+step's operands stay within it.
 If a selected range has too few unique questions, the host receives a clear
 error. Tiebreakers draw unused questions until that pool is exhausted.
 

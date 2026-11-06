@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_SETTINGS, generateDeck, questionPool, validateSettings } from '../lib/questions.js';
+import { storyQuestion } from '../lib/stories.js';
 import { allowedRequest, isLoopback, isPrivate } from '../lib/network.js';
 
 test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rules', () => {
@@ -24,12 +25,76 @@ test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rul
       else if (q.op === '*') {
         assert.equal(q.answer, q.a * q.b);
         assert.ok(q.a >= q.b && q.b >= 2);
+        assert.ok(q.answer <= maxNumber);
       } else {
         assert.equal(q.answer, q.a / q.b);
         assert.ok(q.b >= 2 && q.answer >= 2);
       }
     }
     assert.deepEqual([...operations].sort(), ['*', '+', '-', '/']);
+  }
+});
+
+test('multiplication pools contain exactly the nontrivial products within Max number', () => {
+  for (const maxNumber of [5, 8, 12, 50, 100]) {
+    const pool = questionPool({ ...DEFAULT_SETTINGS, maxNumber, operations: ['*'], questionCount: 1 });
+    const expected = [];
+    for (let a = 2; a <= maxNumber; a++) {
+      for (let b = 2; b <= a; b++) {
+        if (a * b <= maxNumber) expected.push({ a, b, op: '*', answer: a * b });
+      }
+    }
+    assert.deepEqual(pool, expected);
+    assert.ok(pool.some(q => q.a === 2 && q.b === 2));
+    if (maxNumber === 50) {
+      assert.ok(pool.some(q => q.a === 8 && q.b === 6 && q.answer === 48));
+      assert.ok(!pool.some(q => q.a === 49 && q.b === 48));
+      assert.ok(pool.some(q => q.answer === 50));
+    }
+    for (const questionType of ['calculations', 'stories', 'mix']) {
+      const deck = generateDeck({ ...DEFAULT_SETTINGS, maxNumber, operations: ['*'],
+        questionCount: 1, questionType, storySteps: 'mixed' });
+      for (const q of deck.filter(q => q.op === '*')) {
+        assert.ok(q.answer <= maxNumber);
+        for (const step of q.steps ?? [q]) assert.ok(step.answer <= maxNumber);
+      }
+    }
+  }
+  assert.throws(() => generateDeck({ ...DEFAULT_SETTINGS, operations: ['*'],
+    maxNumber: 5, questionCount: 2 }), /Only 1 different questions/);
+});
+
+test('multiplication stories cap both steps and gracefully omit impossible two-step stories', () => {
+  const base = { a: 2, b: 2, op: '*', answer: 4 };
+  assert.equal(storyQuestion(base, 7, true), null);
+  assert.deepEqual(storyQuestion(base, 8, true).steps, [
+    base, { a: 4, b: 2, op: '*', answer: 8 },
+  ]);
+  assert.equal(storyQuestion({ a: 8, b: 6, op: '*', answer: 48 }, 50, true), null);
+  for (const twoStep of [false, true]) {
+    assert.equal(storyQuestion({ a: 49, b: 48, op: '*', answer: 2352 }, 50, twoStep), null);
+  }
+});
+
+test('addition, subtraction and division retain their complete operand-bounded pools', () => {
+  for (const maxNumber of [5, 12, 50, 100]) {
+    for (const op of ['+', '-', '/']) {
+      const expected = [];
+      for (let a = 1; a <= maxNumber; a++) {
+        for (let b = 1; b <= maxNumber; b++) {
+          if (op === '+' && a >= b) expected.push({ a, b, op, answer: a + b });
+          if (op === '-' && a >= b) expected.push({ a, b, op, answer: a - b });
+          if (op === '/' && b >= 2 && a / b >= 2 && Number.isInteger(a / b)) {
+            expected.push({ a, b, op, answer: a / b });
+          }
+        }
+      }
+      assert.deepEqual(questionPool({ ...DEFAULT_SETTINGS, maxNumber, operations: [op],
+        questionCount: 1 }), expected);
+    }
+    const base = { a: maxNumber - 2, b: 2, op: '+', answer: maxNumber };
+    assert.equal(storyQuestion(base, maxNumber).answer, maxNumber);
+    assert.ok(storyQuestion(base, maxNumber, true).answer > maxNumber);
   }
 });
 
@@ -70,7 +135,10 @@ test('story questions obey each operation and chain safe whole-number steps with
               op === '*' ? step.a * step.b : step.a / step.b;
             assert.equal(step.answer, expected);
             assert.ok(Number.isInteger(expected) && expected >= 0 && expected <= 9999);
-            if (op === '*') assert.ok(step.a >= 2 && step.b >= 2);
+            if (op === '*') {
+              assert.ok(step.a >= 2 && step.b >= 2);
+              assert.ok(step.answer <= maxNumber);
+            }
             if (op === '/') assert.ok(step.b >= 2 && expected >= 2);
             if (previous !== undefined) assert.equal(step.a, previous);
             previous = step.answer;
