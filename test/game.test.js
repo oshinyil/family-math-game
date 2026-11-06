@@ -136,6 +136,34 @@ test('one player starts solo practice, reveals early, scores, finishes and repla
   assert.equal(f.a.state.players[0].score, 0);
 });
 
+test('missing operand equations share only the prompt, score the blank and reveal the complete equation', async t => {
+  const f = await fixture(t);
+  for (const op of ['+', '-', '*', '/']) {
+    await send(f.host, 'start', { ...settings, operations: [op], questionCount: 3 });
+    const blanks = [];
+    for (let round = 1; round <= 3; round++) {
+      await ready(f);
+      const q = f.game.question;
+      blanks.push(q.blank);
+      for (const socket of [f.a, f.b, f.host]) {
+        assert.equal(socket.state.question.text, q.text);
+        for (const key of ['a', 'b', 'answer', 'explanation', 'blank']) {
+          assert.equal(key in socket.state.question, false);
+        }
+      }
+      await answer(f.a, q.answer);
+      await answer(f.b, q.answer + 1);
+      await waitState(f.b, s => s?.phase === 'reveal');
+      assert.equal(f.b.state.question.answer, q.answer);
+      assert.equal(f.b.state.question.explanation, q.explanation);
+      assert.deepEqual(f.b.state.players.map(p => p.score), [round, 0]);
+      await send(f.host, 'next');
+    }
+    assert.deepEqual(blanks.sort(), ['a', 'b', 'result']);
+    await send(f.host, 'lobby');
+  }
+});
+
 test('lobby profile updates preserve identity, validate atomically, and broadcast to all clients', async t => {
   const f = await fixture(t);
   const id = f.a.state.playerId;

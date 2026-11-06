@@ -91,6 +91,9 @@ Do not disable the firewall, set up port forwarding, or expose this server to th
 2. Everyone gets the **same question at the same time**. Use the large on-screen
    number pad, Clear, backspace, and Submit. Laptop number keys, Backspace,
    Delete, and Enter also work. Answers are limited to four digits.
+   Calculations rotate between a missing result, left operand and right operand:
+   fill the **`...`**, for example `... + 10 = 14` or `5 + ... = 12`.
+   The reveal shows the completed equation. Stories keep their usual wording.
 3. Submit locks and hides the answer. If time runs out first, the last answer
    **received by the server** still counts, even without Submit. When everyone
    connected has submitted, the answer is revealed early. If a connection drops,

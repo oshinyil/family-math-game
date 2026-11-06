@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SETTINGS, generateDeck, questionPool, validateSettings } from '../lib/questions.js';
+import { calculationQuestion, DEFAULT_SETTINGS, generateDeck, questionPool, validateSettings } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
 import { patternPool } from '../lib/patterns.js';
 import { allowedRequest, isLoopback, isPrivate } from '../lib/network.js';
@@ -8,7 +8,7 @@ import { allowedRequest, isLoopback, isPrivate } from '../lib/network.js';
 test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rules', () => {
   for (const maxNumber of [5, 12, 100]) {
     const settings = { ...DEFAULT_SETTINGS, maxNumber, questionCount: 1 };
-    const deck = generateDeck(settings);
+    const deck = questionPool(settings);
     const keys = new Set();
     const operations = new Set();
     for (const q of deck) {
@@ -34,6 +34,46 @@ test('generator obeys arithmetic, range, uniqueness, and non-trivial operand rul
     }
     assert.deepEqual([...operations].sort(), ['*', '+', '-', '/']);
   }
+});
+
+test('all operations support uniquely solvable left, right and result equation blanks', () => {
+  const bases = [
+    { a: 14, b: 10, op: '+', answer: 24 },
+    { a: 14, b: 10, op: '-', answer: 4 },
+    { a: 6, b: 4, op: '*', answer: 24 },
+    { a: 24, b: 4, op: '/', answer: 6 },
+  ];
+  for (const base of bases) {
+    for (const blank of ['a', 'b', 'result']) {
+      const q = calculationQuestion(base, blank);
+      assert.equal(q.answer, blank === 'result' ? base.answer : base[blank]);
+      assert.equal(q.text.split('...').length, 2);
+      const filled = q.text.replace('...', String(q.answer));
+      assert.equal(filled, q.explanation);
+      const solved = blank === 'result' ? base.answer : blank === 'a' ?
+        (base.op === '+' ? base.answer - base.b : base.op === '-' ? base.answer + base.b :
+          base.op === '*' ? base.answer / base.b : base.answer * base.b) :
+        (base.op === '+' ? base.answer - base.a : base.op === '-' ? base.a - base.answer :
+          base.op === '*' ? base.answer / base.a : base.a / base.answer);
+      assert.equal(solved, q.answer);
+    }
+  }
+  assert.equal(calculationQuestion({ a: 4, b: 10, op: '+', answer: 14 }, 'a').text, '... + 10 = 14');
+  assert.equal(calculationQuestion({ a: 5, b: 7, op: '+', answer: 12 }, 'b').text, '5 + ... = 12');
+  for (const maxNumber of [5, 12, 50, 100]) {
+    const deck = generateDeck({ ...DEFAULT_SETTINGS, maxNumber, questionCount: 1 });
+    assert.equal(deck.length, questionPool({ ...DEFAULT_SETTINGS, maxNumber }).length);
+    assert.equal(new Set(deck.map(q => q.text)).size, deck.length);
+    assert.deepEqual(deck.slice(-3).map(q => q.blank).sort(), ['a', 'b', 'result']);
+    for (const q of deck) {
+      assert.equal(q.answer, q.blank === 'result' ?
+        (q.op === '+' ? q.a + q.b : q.op === '-' ? q.a - q.b :
+          q.op === '*' ? q.a * q.b : q.a / q.b) : q[q.blank]);
+      assert.ok(Number.isInteger(q.answer) && q.answer >= 0);
+      if (q.blank !== 'result') assert.ok(q.answer <= maxNumber);
+    }
+  }
+  assert.throws(() => calculationQuestion(bases[0], 'unknown'), /valid equation blank/);
 });
 
 test('multiplication pools contain exactly the nontrivial products within Max number', () => {

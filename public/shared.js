@@ -2,9 +2,7 @@ export const avatars = {
   fox: '🦊', panda: '🐼', cat: '🐱', frog: '🐸', owl: '🦉', unicorn: '🦄',
   dog: '🐶', lion: '🦁', tiger: '🐯', penguin: '🐧', koala: '🐨', octopus: '🐙',
 };
-export const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
 export const $ = id => document.getElementById(id);
-export const equation = q => `${q.a} ${symbols[q.op]} ${q.b}`;
 
 export function countdownText(state, offset) {
   if (state.phase !== 'reveal' || !state.advanceAt) return null;
@@ -17,16 +15,17 @@ export function renderQuestion(state, questionElement, labelElement, reasoningEl
   const written = state.question.type !== 'calculation';
   const pattern = state.question.type === 'pattern';
   const reveal = state.phase === 'reveal';
-  questionElement.textContent = written ? state.question.text :
-    `${equation(state.question)} = ${reveal ? state.question.answer : '?'}`;
-  if (pattern && reveal) {
+  questionElement.textContent = state.question.text;
+  if (!written && reveal) {
+    questionElement.textContent = state.question.explanation;
+  } else if (pattern && reveal) {
     questionElement.textContent = state.question.text.replace('...', String(state.question.answer));
   }
   questionElement.classList.toggle('story', written);
   questionElement.classList.toggle('pattern', pattern);
   questionElement.classList.toggle('long', !written && questionElement.textContent.length > 11);
   questionElement.closest('.card').classList.toggle('story-card', written);
-  labelElement.textContent = pattern ? '🧩 Number pattern' : written ? '📖 Story' : '🔢 Calculation';
+  labelElement.textContent = pattern ? '🧩 Number pattern' : written ? '📖 Story' : '🔢 Find the missing number';
   reasoningElement.hidden = !written || !reveal;
   reasoningElement.textContent = written && reveal ? state.question.explanation : '';
 }

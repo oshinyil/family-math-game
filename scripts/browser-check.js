@@ -4,7 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { createApp } from '../server.js';
 import { joinUrls } from '../lib/network.js';
-import { DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
+import { calculationQuestion, DEFAULT_SETTINGS, generateDeck } from '../lib/questions.js';
 import { storyQuestion } from '../lib/stories.js';
 import { patternPool } from '../lib/patterns.js';
 
@@ -108,6 +108,29 @@ try {
   assert.equal(await alex.locator('#equation').textContent(), await sam.locator('#equation').textContent());
   assert.equal(await alex.locator('#play-screen input').count(), 0, 'Answers must not use a text input');
   const originalEquation = await alex.locator('#equation').textContent();
+  for (const base of [
+    { a: 100, b: 100, op: '+', answer: 200 },
+    { a: 100, b: 99, op: '-', answer: 1 },
+    { a: 25, b: 4, op: '*', answer: 100 },
+    { a: 100, b: 2, op: '/', answer: 50 },
+  ]) {
+    for (const blank of ['a', 'b', 'result']) {
+      const fixture = calculationQuestion(base, blank);
+      for (const [page, selector] of [[alex, '#equation'], [host, '#host-equation']]) {
+        for (const text of [fixture.text, fixture.explanation]) {
+          await page.locator(selector).evaluate((element, text) => {
+            element.textContent = text;
+            element.classList.toggle('long', text.length > 11);
+          }, text);
+          await fits(page, text);
+        }
+        await page.locator(selector).evaluate((element, text) => {
+          element.textContent = text;
+          element.classList.toggle('long', text.length > 11);
+        }, originalEquation);
+      }
+    }
+  }
   await alex.locator('#equation').evaluate(element => {
     element.textContent = '25 × 4 = 100';
     element.classList.add('long');
@@ -223,20 +246,27 @@ try {
   await alex.setViewportSize({ width: 1366, height: 657 });
   await host.locator('#max-number').fill('50');
   for (const op of ['+', '-', '/']) await host.locator(`input[name="op"][value="${op}"]`).uncheck();
-  await host.locator('#question-count').fill('2');
+  await host.locator('#question-count').fill('3');
   assert.match(await host.locator('#number-limit-help').textContent(), /caps each multiplication result/);
   await host.locator('#start').click();
   assert.ok(app.game.deck.every(q => q.op === '*' && q.answer <= 50));
-  for (let round = 1; round <= 2; round++) {
+  const calculationBlanks = [];
+  for (let round = 1; round <= 3; round++) {
     await alex.locator('#round-label').filter({ hasText: `Question ${round}` }).waitFor();
     assert.equal(app.game.question.op, '*');
     assert.ok(app.game.question.answer <= 50);
+    calculationBlanks.push(app.game.question.blank);
+    assert.equal(await alex.locator('#equation').textContent(), app.game.question.text);
+    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.text);
     await fits(alex);
     await tap(alex, String(app.game.question.answer));
     await alex.locator('[data-key="submit"]').click();
     await alex.locator('#feedback').filter({ hasText: '+1 point' }).waitFor();
+    assert.equal(await alex.locator('#equation').textContent(), app.game.question.explanation);
+    assert.equal(await host.locator('#host-equation').textContent(), app.game.question.explanation);
     await host.locator('#next').click();
   }
+  assert.deepEqual(calculationBlanks.sort(), ['a', 'b', 'result']);
   await host.locator('#host-final').waitFor();
   await host.locator('#new-game').click();
   await host.locator('#question-type').selectOption('stories');
